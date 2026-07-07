@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Toplu Kontrol | ShoeHunter AI{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="page-title">Toplu Kontrol</h1>
+        <p class="text-muted">Tüm aktif mağaza linklerini tek seferde kontrol eder. Şimdilik sadece Intersport. Çünkü evreni bir günde kazımaya çalışmak genelde veritabanını ağlatır.</p>
+    </div>
+
+    <form method="post" action="{{ url_for('checks_run') }}" onsubmit="return confirm('Tüm aktif linkler şimdi kontrol edilsin mi?')">
+        <button class="btn btn-success">Tümünü Şimdi Kontrol Et</button>
+    </form>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="text-muted">Aktif Link</div>
+                <h2>{{ stats.active_listing_count }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="text-muted">Kontrol Edilmiş</div>
+                <h2>{{ stats.checked_listing_count }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="text-muted">Hiç Kontrol Edilmemiş</div>
+                <h2>{{ stats.unchecked_listing_count }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="text-muted">Yeni Uyarı</div>
+                <h2>{{ stats.unread_alert_count }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if results %}
+    <div class="card stat-card">
+        <div class="card-header bg-white">
+            <strong>Son Toplu Kontrol Sonucu</strong>
+        </div>
+
+        <div class="card-body">
+            <div class="row g-3 mb-3">
+                <div class="col-md-3">
+                    <div class="border rounded-4 p-3">
+                        <div class="text-muted">Kontrol</div>
+                        <h3>{{ results.checked }}</h3>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="border rounded-4 p-3">
+                        <div class="text-muted">Atlanan</div>
+                        <h3>{{ results.skipped }}</h3>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="border rounded-4 p-3">
+                        <div class="text-muted">Hata</div>
+                        <h3>{{ results.errors }}</h3>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="border rounded-4 p-3">
+                        <div class="text-muted">Telegram</div>
+                        <h3>{{ results.alerts_sent }}</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                    <tr>
+                        <th>Ürün</th>
+                        <th>Mağaza</th>
+                        <th>Durum</th>
+                        <th>Fiyat</th>
+                        <th>Uyarı</th>
+                        <th>Mesaj</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for item in results['items'] %}
+                        <tr>
+                            <td>{{ item.product_name }}</td>
+                            <td>{{ item.store_name }}</td>
+                            <td>
+                                {% if item.status == "checked" %}
+                                    <span class="badge text-bg-success">Kontrol</span>
+                                {% elif item.status == "skipped" %}
+                                    <span class="badge text-bg-secondary">Atlandı</span>
+                                {% else %}
+                                    <span class="badge text-bg-danger">Hata</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.price is not none %}
+                                    {{ "%.2f"|format(item.price) }} TL
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ item.alerts_created }} üretildi
+                                {% if item.alerts_sent %}
+                                    • {{ item.alerts_sent }} gönderildi
+                                {% endif %}
+                            </td>
+                            <td class="small text-muted">{{ item.message }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="card stat-card">
+        <div class="card-body">
+            <p class="text-muted mb-0">
+                Henüz bu ekrandan toplu kontrol çalıştırılmadı. Butona basınca aktif linkler sırayla kontrol edilir, fiyat geçmişi yazılır ve hedef fiyat uyarıları Telegram’a gider.
+            </p>
+        </div>
+    </div>
+{% endif %}
+
+{% endblock %}

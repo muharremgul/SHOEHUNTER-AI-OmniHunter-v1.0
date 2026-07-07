@@ -1,0 +1,62 @@
+127.0.0.1 - - [07/Jul/2026 02:05:30] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Jul/2026 02:05:30] "GET /urunler HTTP/1.1" 200 -
+127.0.0.1 - - [07/Jul/2026 02:16:06] "GET / HTTP/1.1" 200 -
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 58679)
+Traceback (most recent call last):
+  File "C:\Users\ÖGR1\AppData\Local\Python\pythoncore-3.14-64\Lib\socketserver.py", line 318, in _handle_request_noblock
+    self.process_request(request, client_address)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ÖGR1\AppData\Local\Python\pythoncore-3.14-64\Lib\socketserver.py", line 349, in process_request
+    self.finish_request(request, client_address)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ÖGR1\AppData\Local\Python\pythoncore-3.14-64\Lib\socketserver.py", line 362, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 9, in __init__
+    super().__init__(*args, directory=build, **kwargs)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ÖGR1\AppData\Local\Python\pythoncore-3.14-64\Lib\http\server.py", line 732, in __init__
+    super().__init__(*args, **kwargs)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\ÖGR1\AppData\Local\Python\pythoncore-3.14-64\Lib\socketserver.py", line 766, in __init__
+    self.handle()
+    ~~~~~~~~~~~^^
+  File "C:\Users\ÖGR1\AppData\Local\Python\pythoncore-3.14-64\Lib\http\server.py", line 496, in handle
+    self.handle_one_request()
+    ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\ÖGR1\AppData\Local\Python\pythoncore-3.14-64\Lib\http\server.py", line 484, in handle_one_request
+    method()
+    ~~~~~~^^
+  File "C:\Users\ÖGR1\AppData\Local\Python\pythoncore-3.14-64\Lib\http\server.py", line 739, in do_GET
+    self.copyfile(f, self.wfile)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\ÖGR1\AppData\Local\Python\pythoncore-3.14-64\Lib\http\server.py", line 942, in copyfile
+    shutil.copyfileobj(source, outputfile)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ÖGR1\AppData\Local\Python\pythoncore-3.14-64\Lib\shutil.py", line 257, in copyfileobj
+    fdst_write(buf)
+    ~~~~~~~~~~^^^^^
+  File "C:\Users\ÖGR1\AppData\Local\Python\pythoncore-3.14-64\Lib\socketserver.py", line 845, in write
+    self._sock.sendall(b)
+    ~~~~~~~~~~~~~~~~~~^^^
+ConnectionAbortedError: [WinError 10053] Kurulan bir baðlantý, ana makinenizdeki yazýlým tarafýndan iptal edildi
+----------------------------------------
+127.0.0.1 - - [07/Jul/2026 02:16:06] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Jul/2026 02:16:06] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Jul/2026 02:16:06] "GET /static/css/main.e27fe2e6.css HTTP/1.1" 200 -
+127.0.0.1 - - [07/Jul/2026 02:16:06] "GET /static/js/main.cec3ec88.js HTTP/1.1" 200 -
+127.0.0.1 - - [07/Jul/2026 02:16:06] "GET /static/css/main.e27fe2e6.css HTTP/1.1" 200 -
+127.0.0.1 - - [07/Jul/2026 02:16:06] "GET /static/js/main.cec3ec88.js HTTP/1.1" 200 -
+127.0.0.1 - - [07/Jul/2026 02:16:06] "GET /favicon.ico HTTP/1.1" 200 -
+127.0.0.1 - - [07/Jul/2026 02:16:06] "GET /favicon.ico HTTP/1.1" 200 -
+127.0.0.1 - - [07/Jul/2026 02:17:34] "GET /favicon.ico HTTP/1.1" 304 -
+127.0.0.1 - - [07/Jul/2026 02:29:54] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Jul/2026 02:29:54] "GET /static/js/main.cec3ec88.js HTTP/1.1" 200 -
+127.0.0.1 - - [07/Jul/2026 02:29:54] "GET /static/css/main.e27fe2e6.css HTTP/1.1" 200 -
+127.0.0.1 - - [07/Jul/2026 02:29:55] "GET /favicon.ico HTTP/1.1" 200 -
+127.0.0.1 - - [07/Jul/2026 02:33:03] "GET /favicon.ico HTTP/1.1" 304 -
+127.0.0.1 - - [07/Jul/2026 04:50:29] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Jul/2026 04:50:29] "GET /static/js/main.cec3ec88.js HTTP/1.1" 200 -
+127.0.0.1 - - [07/Jul/2026 04:50:29] "GET /static/css/main.e27fe2e6.css HTTP/1.1" 200 -
+127.0.0.1 - - [07/Jul/2026 04:50:29] "GET /favicon.ico HTTP/1.1" 304 -

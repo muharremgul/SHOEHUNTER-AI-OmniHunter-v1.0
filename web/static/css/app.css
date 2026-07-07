@@ -1,0 +1,49 @@
+:root {
+    --sh-bg: #f5f7fb;
+    --sh-dark: #111827;
+    --sh-card: #ffffff;
+    --sh-primary: #2563eb;
+}
+
+body {
+    background: var(--sh-bg);
+}
+
+.sidebar {
+    min-height: 100vh;
+    background: var(--sh-dark);
+    color: white;
+}
+
+.sidebar a {
+    color: #d1d5db;
+    text-decoration: none;
+    display: block;
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+}
+
+.sidebar a:hover,
+.sidebar a.active {
+    background: #1f2937;
+    color: white;
+}
+
+.stat-card {
+    border: 0;
+    border-radius: 18px;
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.06);
+}
+
+.page-title {
+    font-weight: 800;
+}
+
+.brand-badge {
+    font-size: 12px;
+    background: #e0f2fe;
+    color: #075985;
+    border-radius: 999px;
+    padding: 4px 10px;
+}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Mağazalar | ShoeHunter AI{% endblock %}
+
+{% block content %}
+
+<h1 class="page-title mb-3">Mağazalar</h1>
+<p class="text-muted">İlk mağaza motorumuz Intersport olacak. İnsanlık HTML içinde pz-price sakladığı sürece biz de bunu okuyacağız.</p>
+
+<div class="card stat-card">
+    <div class="card-body">
+        <table class="table align-middle">
+            <thead>
+            <tr>
+                <th>Mağaza</th>
+                <th>URL</th>
+                <th>Durum</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for store in stores %}
+                <tr>
+                    <td><strong>{{ store.name }}</strong></td>
+                    <td><a href="{{ store.url }}" target="_blank">{{ store.url }}</a></td>
+                    <td>
+                        {% if store.enabled %}
+                            <span class="badge text-bg-success">Aktif</span>
+                        {% else %}
+                            <span class="badge text-bg-secondary">Pasif</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

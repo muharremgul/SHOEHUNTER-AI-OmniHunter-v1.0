@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Ürünler | ShoeHunter AI{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="page-title">Ürünler</h1>
+        <p class="text-muted">Takip sistemine eklenen ürünler.</p>
+    </div>
+    <a href="{{ url_for('product_new') }}" class="btn btn-primary">+ Yeni Ürün</a>
+</div>
+
+<div class="card stat-card">
+    <div class="card-body">
+        {% if products %}
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                    <tr>
+                        <th>Ürün</th>
+                        <th>Marka</th>
+                        <th>Kategori</th>
+                        <th>Cinsiyet</th>
+                        <th>İşlem</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for product in products %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('product_detail', product_id=product.id) }}">
+                                    <strong>{{ product.display_name }}</strong>
+                                </a>
+                            </td>
+                            <td>{{ product.brand }}</td>
+                            <td>{{ product.category or "-" }}</td>
+                            <td>{{ product.gender or "-" }}</td>
+                            <td class="d-flex gap-2">
+                                <a href="{{ url_for('product_detail', product_id=product.id) }}" class="btn btn-sm btn-outline-primary">Aç</a>
+                                <form action="{{ url_for('product_delete', product_id=product.id) }}" method="post" onsubmit="return confirm('Bu ürünü silmek istiyor musun?')">
+                                    <button class="btn btn-sm btn-outline-danger">Sil</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted">Henüz ürün yok. Hadi bir Glycerin, 1080 veya Speed Ultra ekleyelim de sistem çalıştığını hissetsin.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
