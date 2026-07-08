@@ -9,7 +9,7 @@ Kullanıcının eski Flask kodu /app kök dizininde referans olarak duruyor (mod
 
 ## Kullanıcı Seçimleri
 - GitHub repo 404 döndü; eski Flask kodu zaten workspace'e yüklüydü (referans alındı, Intersport parser mantığı taşındı)
-- Telegram: token 8918284584:AAF05xhI4_pDU9VAOX5hoftxVpXB06dBNLk, chat_id 731990605 (backend/.env)
+- Telegram: token , chat_id  (backend/.env)
 - AI: Emergent Universal Key (GPT-5.4)
 - Mağaza: mümkün olduğunca çok mağaza
 
