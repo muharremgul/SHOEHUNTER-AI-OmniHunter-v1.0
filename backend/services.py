@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 import os
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -75,11 +75,19 @@ async def check_listing(db, listing):
         data = await engine.get_product_data(listing["url"])
     except Exception as exc:
         msg = str(exc)[:300]
+        update_doc = {"last_error": msg, "last_checked_at": now_iso()}
         if "403" in msg or "429" in msg:
-            msg = "Mağaza sunucu taraflı erişimi engelliyor (bot koruması). Fiyatı 'elle fiyat gir' ile güncelleyebilirsiniz."
+            msg = "MaÄŸaza sunucu taraflÄ± eriÅŸimi engelliyor (bot korumasÄ±). FiyatÄ± 'elle fiyat gir' ile gÃ¼ncelleyebilirsiniz."
+            update_doc["last_error"] = msg
+        elif "404" in msg:
+            msg = "ÃœrÃ¼n sayfasÄ± bulunamadÄ± (404). ÃœrÃ¼n yayÄ±ndan kaldÄ±rÄ±lmÄ±ÅŸ."
+            update_doc["last_error"] = msg
+            update_doc["last_in_stock"] = False
+            update_doc["last_stock_count"] = 0
+
         await db.listings.update_one(
             {"id": listing["id"]},
-            {"$set": {"last_error": msg, "last_checked_at": now_iso()}},
+            {"$set": update_doc},
         )
         return {**base, "status": "error", "error": msg}
 
@@ -102,42 +110,54 @@ async def check_listing(db, listing):
     if data.get("image") and not listing.get("image"):
         update["image"] = data["image"]
     await db.listings.update_one({"id": listing["id"]}, {"$set": update})
+    if data.get("image"):
+        await db.products.update_one(
+            {"id": listing["product_id"], "$or": [{"image": None}, {"image": ""}, {"image": {"$exists": False}}]},
+            {"$set": {"image": data["image"]}},
+        )
 
     if data["current_price"] is not None:
         last_p = listing.get("last_price")
         curr_p = data["current_price"]
-        
+
+        last_p_valid = (
+            isinstance(last_p, (int, float))
+            and 50 <= last_p <= 200000
+            and last_p <= curr_p * 5
+        )
+
         # Evrensel Indirim Radari: Fiyat son degere gore %3 veya daha fazla duserse
-        if last_p and curr_p < last_p * 0.97:
+        if last_p_valid and curr_p < last_p * 0.97:
             drop_pct = round(((last_p - curr_p) / last_p) * 100)
-            p_name = update.get("title") or listing.get("title") or "İsimsiz Ürün"
+            p_name = update.get("title") or listing.get("title") or "Ä°simsiz ÃœrÃ¼n"
             alert = {
                 "id": new_id(),
                 "rule_id": "universal_radar",
                 "product_id": listing["product_id"],
                 "listing_id": listing["id"],
-                "title": f"📉 İNDİRİM RADARI: %{drop_pct} Düşüş!",
+                "title": f"ğŸ“‰ Ä°NDÄ°RÄ°M RADARI: %{drop_pct} DÃ¼ÅŸÃ¼ÅŸ!",
                 "product_name": p_name,
                 "store": engine.name,
                 "url": listing["url"],
                 "price": curr_p,
-                "target_price": last_p,
-                "size": "Tümü",
+                "previous_price": last_p,
+                "target_price": None,
+                "size": "TÃ¼mÃ¼",
                 "price_type": "Normal fiyat",
                 "ai_decision": "STRONG_BUY",
                 "ai_score": 90,
-                "ai_comment": f"Fiyat {last_p} TL'den {curr_p} TL'ye düştü! (Kuraldan bağımsız otomatik uyarı)",
+                "ai_comment": f"Fiyat {last_p} TL'den {curr_p} TL'ye dÃ¼ÅŸtÃ¼! (Kuraldan baÄŸÄ±msÄ±z otomatik uyarÄ±)",
                 "telegram_sent": False,
                 "created_at": now_iso()
             }
             await db.alerts.insert_one(dict(alert))
             tg_text = (
-                f"📉 <b>İNDİRİM YAKALANDI! (%{drop_pct})</b>\n\n"
-                f"🏷 <b>Ürün:</b> {p_name}\n"
-                f"❌ <b>Eski:</b> {last_p} TL\n"
-                f"✅ <b>Yeni:</b> {curr_p} TL\n"
-                f"🏪 <b>Mağaza:</b> {engine.name}\n"
-                f"🔗 <a href='{listing['url']}'>Ürüne Git</a>"
+                f"ğŸ“‰ <b>Ä°NDÄ°RÄ°M YAKALANDI! (%{drop_pct})</b>\n\n"
+                f"ğŸ· <b>ÃœrÃ¼n:</b> {p_name}\n"
+                f"âŒ <b>Eski:</b> {last_p} TL\n"
+                f"âœ… <b>Yeni:</b> {curr_p} TL\n"
+                f"ğŸª <b>MaÄŸaza:</b> {engine.name}\n"
+                f"ğŸ”— <a href='{listing['url']}'>ÃœrÃ¼ne Git</a>"
             )
             tg_res = await send_telegram(db, tg_text)
             if tg_res.get("sent"):
@@ -271,9 +291,9 @@ async def evaluate_product_rules(db, product_id):
             insight = compute_price_insight(history, price, target)
             decision = compute_buy_decision(listing, rule, insight, profile, display_name)
             ai_comment = short_comment(decision)
-            
+
             is_tolerance = price > target
-            title_prefix = "🎯 HEDEFE YAKLAŞTI" if is_tolerance else "✅ HEDEF YAKALANDI"
+            title_prefix = "ğŸ¯ HEDEFE YAKLAÅTI" if is_tolerance else "âœ… HEDEF YAKALANDI"
 
             alert = {
                 "id": new_id(),
@@ -296,16 +316,16 @@ async def evaluate_product_rules(db, product_id):
                 "created_at": now_iso(),
             }
             message = (
-                "\U0001f45f <b>ShoeHunter AI İndirim Yakaladı!</b>\n\n"
-                f"<b>Ürün:</b> {display_name}\n"
-                f"<b>Mağaza:</b> {listing.get('store')}\n"
+                "\U0001f45f <b>ShoeHunter AI Ä°ndirim YakaladÄ±!</b>\n\n"
+                f"<b>ÃœrÃ¼n:</b> {display_name}\n"
+                f"<b>MaÄŸaza:</b> {listing.get('store')}\n"
                 f"<b>Beden:</b> {matched_size}\n"
-                f"<b>Güncel fiyat:</b> {price:.2f} TL \U0001f525\n"
+                f"<b>GÃ¼ncel fiyat:</b> {price:.2f} TL \U0001f525\n"
                 f"<b>Hedef fiyat:</b> {target:.2f} TL\n"
                 f"<b>Fiyat tipi:</b> {price_type}\n"
-                f"<b>Stok durumu:</b> Bildirim anında stokta görünüyordu\n\n"
+                f"<b>Stok durumu:</b> Bildirim anÄ±nda stokta gÃ¶rÃ¼nÃ¼yordu\n\n"
                 f"\U0001f916 <b>AI Yorumu:</b> {ai_comment}\n\n"
-                f"\U0001f6d2 <a href='{listing.get('url')}'>Ürüne Git</a>"
+                f"\U0001f6d2 <a href='{listing.get('url')}'>ÃœrÃ¼ne Git</a>"
             )
             tg_result = await send_telegram(db, message)
             alert["telegram_sent"] = bool(tg_result.get("sent"))

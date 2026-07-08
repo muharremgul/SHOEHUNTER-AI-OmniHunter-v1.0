@@ -28,7 +28,7 @@ class AdidasEngine(StoreEngine):
         dbg = result["debug"]
 
         # Ortak baslik ve meta veri ayristirma (StoreEngine icerisinden)
-        self.parse_common_meta(soup, result)
+        self.parse_common_meta(soup, result, url)
 
         # Kullanicinin yazdigi kusursuz JSON-LD (ProductGroup) ayristirma mantigi
         for script in soup.find_all("script", type="application/ld+json"):

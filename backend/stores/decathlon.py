@@ -9,7 +9,13 @@ from bs4 import BeautifulSoup
 
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from engines import StoreEngine, parse_price_text, extract_json_ld_products, _extract_variant_urls
+from engines import (
+    StoreEngine,
+    parse_price_text,
+    _absolute_url,
+    _extract_variant_urls,
+    _score_result,
+)
 
 
 class DecathlonEngine(StoreEngine):
@@ -22,10 +28,10 @@ class DecathlonEngine(StoreEngine):
     js_search = False
     use_browser = False
 
-    async def fetch(self, url, max_retries=3, backoff_seconds=1.5):
+    async def fetch(self, url, max_retries=3, backoff_seconds=1.5, timeout_seconds=15):
         """Decathlon httpx'i (bot korumasiyla) engelledigi icin ozel requests kullanimi."""
         import asyncio
-        import requests
+        from curl_cffi import requests
         import time
 
         DECATHLON_HEADERS = {
@@ -37,7 +43,7 @@ class DecathlonEngine(StoreEngine):
             last_exc = None
             for attempt in range(1, max_retries + 1):
                 try:
-                    resp = requests.get(url, headers=DECATHLON_HEADERS, timeout=15)
+                    resp = requests.get(url, headers=DECATHLON_HEADERS, timeout=timeout_seconds, impersonate="chrome110")
                     resp.raise_for_status()
                     return resp.text
                 except Exception as exc:
@@ -54,7 +60,7 @@ class DecathlonEngine(StoreEngine):
         dbg = result["debug"]
 
         # --- Baslik ve Gorsel (generic meta) ---
-        self.parse_common_meta(soup, result)
+        self.parse_common_meta(soup, result, url)
 
         # --- Fiyat: once guncel satis fiyati, yoksa orijinal fiyat ---
         price_tag = soup.find("meta", attrs={"property": "product:price:amount"})
@@ -140,14 +146,18 @@ class DecathlonEngine(StoreEngine):
             img = None
             img_el = card.select_one("img")
             if img_el:
-                img = img_el.get("src") or img_el.get("data-src")
+                img = _absolute_url(base_url, img_el.get("src") or img_el.get("data-src"))
             if title and "decathlon" in href.lower():
-                from engines import _score_result
+                score = _score_result(title, query)
+                if score < 45:
+                    continue
                 results.append({
                     "title": title,
                     "url": href,
                     "price": price,
                     "image": img,
-                    "score": _score_result(title, query),
+                    "score": score,
+                    "store": self.name,
                 })
+        results.sort(key=lambda item: -item["score"])
         return results[:12]

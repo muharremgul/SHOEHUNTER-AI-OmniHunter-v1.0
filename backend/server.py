@@ -115,6 +115,7 @@ class ManualPrice(BaseModel):
 class QuickTrack(BaseModel):
     url: str
     name: Optional[str] = None
+    image: Optional[str] = None
 
 
 class RuleCreate(BaseModel):
@@ -392,12 +393,13 @@ async def quick_track(body: QuickTrack, background_tasks: BackgroundTasks):
             )
         raise HTTPException(422, f"Ürün sayfası okunamadı: {msg}")
     name = body.name or data.get("title") or "İsimsiz Ürün"
+    image = data.get("image") or body.image
     product = {
         "id": new_id(),
         "name": name,
         "brand": data.get("brand"),
         "model": None,
-        "image": data.get("image"),
+        "image": image,
         "notes": None,
         "family_key": make_family_key(name),
         "active": True,
@@ -411,7 +413,7 @@ async def quick_track(body: QuickTrack, background_tasks: BackgroundTasks):
         "store": engine.name,
         "store_slug": engine.slug,
         "title": data.get("title"),
-        "image": data.get("image"),
+        "image": image,
         "active": True,
         "last_price": data.get("current_price"),
         "last_old_price": data.get("old_price"),
@@ -874,7 +876,7 @@ async def zero_link_search(body: SearchRequest):
 
     async def _search(engine):
         try:
-            results = await asyncio.wait_for(engine.search(search_query), timeout=15)
+            results = await asyncio.wait_for(engine.search(search_query), timeout=40)
             return {"store": engine.name, "status": "ok", "results": results, "engine": "static"}
         except asyncio.TimeoutError:
             return {"store": engine.name, "status": "timeout", "results": [], "error": "Zaman aşımı", "engine": "static"}
@@ -891,7 +893,9 @@ async def zero_link_search(body: SearchRequest):
     js_results = []
     if js_task:
         try:
-            js_results = await asyncio.wait_for(js_task, timeout=75)
+            js_batches = (len(js_engines) + 2) // 3
+            js_timeout = min(150, max(90, (js_batches * 38) + 10))
+            js_results = await asyncio.wait_for(js_task, timeout=js_timeout)
         except asyncio.TimeoutError:
             js_results = [
                 {"store": e.name, "status": "timeout", "results": [], "error": "Tarayıcı motoru zaman aşımı", "engine": "playwright"}
@@ -910,7 +914,7 @@ async def track_candidate(body: TrackCandidate, background_tasks: BackgroundTask
     if existing:
         raise HTTPException(409, "Bu link zaten takip ediliyor")
     try:
-        return await quick_track(QuickTrack(url=body.url, name=body.title), background_tasks)
+        return await quick_track(QuickTrack(url=body.url, name=body.title, image=body.image), background_tasks)
     except HTTPException:
         # Fiyat okunamasa bile urunu linksiz olarak ekle
         name = body.title or "Isimsiz Urun"
@@ -920,7 +924,7 @@ async def track_candidate(body: TrackCandidate, background_tasks: BackgroundTask
             "name": name,
             "brand": None,
             "model": None,
-            "image": None,
+            "image": body.image,
             "notes": "Fiyat okunamadi, link eklendi. Sonraki taramada okunacak.",
             "family_key": make_family_key(name),
             "active": True,
@@ -934,7 +938,7 @@ async def track_candidate(body: TrackCandidate, background_tasks: BackgroundTask
             "store": engine.name,
             "store_slug": engine.slug,
             "title": name,
-            "image": None,
+            "image": body.image,
             "active": True,
             "last_price": None,
             "last_error": "Ilk taramada fiyat okunamadi",

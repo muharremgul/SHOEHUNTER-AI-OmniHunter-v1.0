@@ -4,6 +4,13 @@ from bs4 import BeautifulSoup
 class NikeEngine(StoreEngine):
     def __init__(self):
         super().__init__()
+        self.name = "Nike TR"
+        self.slug = "nike"
+        self.domains = ["nike.com"]
+        self.search_path = "https://www.nike.com/tr/w?q={q}"
+        self.product_pattern = r"/t/"
+        self.priority = 20
+        self.js_search = False
         # Nike TR requests'i bloklamadigi icin Playwright'a gerek yok
         self.use_browser = False 
         self.headers = {
@@ -25,7 +32,13 @@ class NikeEngine(StoreEngine):
             for label in soup.select('label:not([disabled])'):
                 text = label.get_text(strip=True)
                 if text.replace(',', '.').replace('EU', '').strip().replace('.5', '').isdigit():
-                    sizes.append({"name": text, "stock": True})
+                    sizes.append({
+                        "name": text,
+                        "size": text,
+                        "in_stock": True,
+                        "sku": None,
+                        "stock_source": "nike_label",
+                    })
             
             if sizes:
                 result["sizes"] = sizes

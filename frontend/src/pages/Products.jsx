@@ -17,11 +17,13 @@ export default function Products() {
 
   const load = () =>
     api.get("/products").then((r) => {
-      // Akilli siralama: Stokta olanlar uste, olmayanlar alta
-      const sorted = r.data.sort((a, b) => {
-        if (a.in_stock === b.in_stock) return 0;
-        return a.in_stock ? -1 : 1;
-      });
+      const sorted = r.data
+        .filter((p) => p.in_stock)
+        .sort((a, b) => {
+          const priceA = a.best_price ?? Number.POSITIVE_INFINITY;
+          const priceB = b.best_price ?? Number.POSITIVE_INFINITY;
+          return priceA - priceB;
+        });
       setProducts(sorted);
       setLoading(false);
     });
@@ -126,8 +128,8 @@ export default function Products() {
         <div className="text-zinc-500 font-mono text-sm">Yükleniyor...</div>
       ) : products.length === 0 ? (
         <div className="card p-12 text-center">
-          <div className="text-zinc-400 font-heading text-lg">Henüz ürün yok</div>
-          <div className="text-zinc-500 text-sm mt-2">"Link ile Ekle" ile bir ürün linki yapıştırın veya AI Arama'dan ürün bulun.</div>
+          <div className="text-zinc-400 font-heading text-lg">Stokta ürün yok</div>
+          <div className="text-zinc-500 text-sm mt-2">Takipteki ürünler tekrar stoğa girince burada otomatik görünür.</div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

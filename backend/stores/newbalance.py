@@ -5,6 +5,13 @@ import re
 class NewBalanceEngine(StoreEngine):
     def __init__(self):
         super().__init__()
+        self.name = "New Balance TR"
+        self.slug = "newbalance"
+        self.domains = ["newbalance.com.tr"]
+        self.search_path = "https://www.newbalance.com.tr/arama?q={q}"
+        self.product_pattern = r"/urun/"
+        self.priority = 23
+        self.js_search = False
         self.use_browser = False 
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -22,7 +29,13 @@ class NewBalanceEngine(StoreEngine):
             for label in soup.select('.product-size-container label, .product-sizes label'):
                 text = label.get_text(strip=True)
                 if text.replace('.', '').replace(',', '').isdigit():
-                    sizes.append({"name": text, "stock": True})
+                    sizes.append({
+                        "name": text,
+                        "size": text,
+                        "in_stock": True,
+                        "sku": None,
+                        "stock_source": "newbalance_label",
+                    })
             
             if sizes:
                 result["sizes"] = sizes

@@ -5,6 +5,13 @@ import re
 class PumaEngine(StoreEngine):
     def __init__(self):
         super().__init__()
+        self.name = "Puma TR"
+        self.slug = "puma"
+        self.domains = ["tr.puma.com", "puma.com"]
+        self.search_path = "https://tr.puma.com/search?q={q}"
+        self.product_pattern = r"/pd/|\.html/?$"
+        self.priority = 22
+        self.js_search = True
         # Puma bot korumasi (403) yapmadigi icin standart http ile baslayabiliriz
         self.use_browser = False 
         self.headers = {
@@ -24,7 +31,13 @@ class PumaEngine(StoreEngine):
                 val = btn.get('data-attr-value', '').strip()
                 # 40, 41, 42 gibi sayilari topla
                 if val.replace('.', '').replace(',', '').isdigit() and len(val) <= 4:
-                    sizes.append({"name": val, "stock": True})
+                    sizes.append({
+                        "name": val,
+                        "size": val,
+                        "in_stock": not btn.has_attr("disabled") and btn.get("aria-disabled") != "true",
+                        "sku": None,
+                        "stock_source": "puma_button_data_attr",
+                    })
             
             if sizes:
                 result["sizes"] = sizes
