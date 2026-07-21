@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Mağaza Linki Ekle | ShoeHunter AI{% endblock %}
+
+{% block content %}
+
+<div class="mb-4">
+    <h1 class="page-title">Mağaza Linki Ekle</h1>
+    <p class="text-muted">{{ product.display_name }} için mağaza ürün sayfası ekle. Şimdilik manuel URL, v0.6'da AI arayacak.</p>
+</div>
+
+<div class="card stat-card">
+    <div class="card-body">
+        <form method="post">
+            <div class="mb-3">
+                <label class="form-label">Mağaza</label>
+                <select name="store_id" class="form-select">
+                    {% for store in stores %}
+                        <option value="{{ store.id }}">{{ store.name }}</option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">v0.4'te gerçek kontrol sadece Intersport için aktif.</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Ürün URL</label>
+                <input type="url" name="url" class="form-control" placeholder="https://www.intersport.com.tr/..." required>
+            </div>
+
+            <button class="btn btn-primary">Kaydet</button>
+            <a href="{{ url_for('product_detail', product_id=product.id) }}" class="btn btn-light">Vazgeç</a>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

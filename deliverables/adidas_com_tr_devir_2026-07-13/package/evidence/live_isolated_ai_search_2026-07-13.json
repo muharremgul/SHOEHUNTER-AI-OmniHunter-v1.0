@@ -1,0 +1,24 @@
+{
+  "captured_at": "2026-07-13T10:50:00+03:00",
+  "query": "adidas adizero evo sl",
+  "scope": "Yalniz Adidas Turkiye motoru; AI kredi kullanimi kapali",
+  "elapsed_seconds": 9.48,
+  "aggregate_status": "ok",
+  "engine": "layered",
+  "direct_source_error": "HTTP 403",
+  "fallback_used": true,
+  "result_count": 6,
+  "price_count": 0,
+  "stock_count": 0,
+  "size_count": 0,
+  "enriched_count": 0,
+  "results": [
+    {"code": "HQ5000", "match_score": 100, "source": "sitemap", "price": null, "stock": null, "sizes": null, "enriched": false},
+    {"code": "IH5564", "title": "Adizero Adios Pro Evo 1", "match_score": 92, "source": "sitemap", "price": null, "stock": null, "sizes": null, "enriched": false},
+    {"code": "IH9360", "title": "Disney SL72", "match_score": 60, "source": "sitemap", "price": null, "stock": null, "sizes": null, "enriched": false},
+    {"code": "JH6206", "match_score": 100, "source": "sitemap", "price": null, "stock": null, "sizes": null, "enriched": false},
+    {"code": "JH6208", "match_score": 100, "source": "sitemap", "price": null, "stock": null, "sizes": null, "enriched": false},
+    {"code": "JP7147", "match_score": 100, "source": "sitemap", "price": null, "stock": null, "sizes": null, "enriched": false}
+  ],
+  "interpretation": "Gorunen ok durumu canli Adidas aramasinin basarisini degil, HTTP 403 sonrasinda sitemap yedeginin URL uretmesini ifade ediyor."
+}

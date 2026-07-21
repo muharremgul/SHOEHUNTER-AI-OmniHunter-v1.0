@@ -1,0 +1,21 @@
+{
+  "summary": "İlk kapsamlı test turu. Backend: 19/19 pytest test geçti (dashboard, ürünler CRUD, kurallar, uyarılar, batch check, ayarlar/scheduler toggle, telegram send, AI zero-link arama, AI Koç SSE stream + history, profile). Frontend: tüm ana sayfalar (Panel, Ürünler, Ürün Detayı, Uyarılar, Ayarlar, AI Arama, AI Koç, Debug, Profil) yükleniyor; manual ürün ekleme, sidebar 'Tüm Linkleri Kontrol Et' (batch-check-button), profile persist, AI Coach mesaj streaming çalışıyor. Alarm karar motoru testte doğrulandı: mevcut seed'de tek uyarı beden 45 için (stokta olan) oluşmuş, cooldown içindeki çağrıda tekrar oluşmadı; beden 44 için (stokta olmayan) uyarı yok.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_shoehunter.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py 605 satır tek dosyada; ileride router bazlı modülere bölünmesi bakım kolaylığı sağlar (products, listings, rules, alerts, settings, ai).",
+    "evaluate_product_rules cooldown karşılaştırmasında last_alert.created_at zaten UTC ISO; ancak fromisoformat 3.11'de +00:00'u tolere ediyor. Yine de datetime.fromisoformat exception yakalanıyor, sağlam.",
+    "quick_track ürünü doğrudan oluşturur ama aynı URL ile daha önce eklenmişse duplicate ürün oluşabilir (unique kontrol yok /track/quick içinde; sadece /search/track'te var).",
+    "Frontend'te 'React Router Future Flag Warning' console'da; kritik değil ama v7 geçişinde flag eklenmeli.",
+    "AI Coach SSE endpoint için Cache-Control ayarı doğru; ancak /api/ai/coach için ingress buffer davranışı ortama bağlı — production'da doğrulanmalı."
+  ],
+  "updated_files": ["/app/backend/tests/test_shoehunter.py"],
+  "success_rate": {"backend": "100% (19/19)", "frontend": "100% (kritik akışlar)"},
+  "test_credentials": "N/A (auth yok, tek kullanıcılı panel)",
+  "seed_data_creation": "Test sırasında ürün TEST_UI_Product_123 oluşturuldu ve temizlendi. Seed veri (Brooks Glycerin 22, 2 kural, 1 uyarı) korundu.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend regression: `pytest /app/backend/tests/test_shoehunter.py -m 'not slow' -v`. 'slow' marker'lı test (Intersport quick_track) 30-60sn sürer, ihtiyaç halinde -m slow ile çalıştırılabilir. Telegram testleri gerçek kullanıcıya mesaj gönderir; ard arda çalıştırırken spam'e dikkat. Scheduler testi disable ile biter."
+}

@@ -1,0 +1,20 @@
+{
+  "summary": "ShoeHunter AI v1.2 yeni özellikler tam kapsamlı test edildi. Backend: 28/28 hızlı pytest PASS (yeni 6 test eklendi: family_key_grouping, product_family_siblings, dashboard_deals, manual_price_flow_and_validation, manual_price_404, buy_advice_avg_30d_reasonable). Frontend: Dashboard 'Günün Fırsatları' bölümü 4 kart döndü (skora göre sıralı: AL 88, ALINABİLİR 79, ALINABİLİR 70, SADECE ÇOK UCUZSA 44), kart tıklamayla ürün detaya navigasyon çalışıyor. Ürün detayda (Siyah) 'Ürün Ailesi — Diğer Renkler/Varyantlar' bölümü Beyaz kardeşi (4.499,90 TL Stokta) gösteriyor, GTS varyantı ayrı aile (doğru davranış). Manuel fiyat kalem ikonu (data-testid=manual-price-{lid}) her listing satırında mevcut. Spektrum aile alarmı doğrulandı: alerts listesinde Beyaz ürün için 4500 TL alarm mevcut (regression PASS). Manuel fiyat: 0/negatif -> 400, geçerli -> listing güncellenir + price_history'ye 'manual' kaynak kayıt düşer. Buy advice avg_30d artık makul (<100000, 771M bug yok).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_shoehunter.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py /dashboard/deals endpoint her ürün için _product_advice çağırıyor (N DB roundtrip); ürün sayısı arttıkça pahalılaşır. Toplu aggregation veya cache düşünülebilir.",
+    "make_family_key COLOR_WORDS listesi statik; yeni renk kelimeleri eklenmesi gerekebilir (ör. 'lila', 'somon' var ama 'jade', 'coral' yok). Genişletilebilir bir konfigürasyon önerilir.",
+    "manual_price endpoint'i eski last_price'ı korumadan üzerine yazıyor; yanlış girişten sonra kolay geri alma yok. UI'da 'geri al' veya son otomatik fiyata dönme opsiyonu kullanışlı olur.",
+    "server.py hâlâ ~790 satır ve büyümeye devam ediyor; router bölümlemesi (products/listings/deals/manual) bakım için önemli."
+  ],
+  "updated_files": ["/app/backend/tests/test_shoehunter.py"],
+  "success_rate": {"backend": "100% (28/28 hızlı; slow suite değişmedi)", "frontend": "100% (deals + family + manual-price UI akışları)"},
+  "test_credentials": "N/A (auth yok)",
+  "seed_data_creation": "Test sırasında Brooks Glycerin 22 Beyaz listing'in manuel fiyatı test için 12345.67 olarak yazıldı, ardından context notta belirtilen 4499.9 değerine geri restore edildi. Seed veri korundu.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Regression: pytest /app/backend/tests/test_shoehunter.py -m 'not slow' (28 test, ~42sn). v1.2 yeni testler: test_family_key_grouping (family.py unit), test_product_family_siblings, test_dashboard_deals, test_manual_price_flow_and_validation, test_manual_price_404, test_buy_advice_avg_30d_reasonable. Not: test_manual_price_flow_and_validation ilk listing'i güncelliyor - önceki testin bıraktığı manuel değerin üzerine yazabilir. Testten sonra manuel restore gerekebilir. UI data-testid'ler: daily-deals-section, deal-card-{i}, product-family-section, family-item-{i}, manual-price-{listing_id}."
+}

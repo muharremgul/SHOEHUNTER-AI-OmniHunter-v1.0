@@ -1,0 +1,7 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" rx="42" fill="#09090B"/>
+  <path d="M39 118C57 128 82 134 118 134H151C158 134 163 129 163 122V115C163 110 159 106 154 106H128C117 106 105 101 94 92L74 75C69 71 62 71 57 75L43 86C38 90 36 96 38 102L39 118Z" fill="#CCFF00"/>
+  <path d="M51 102L70 88L88 104C99 114 114 120 130 120H157" stroke="#09090B" stroke-width="8" stroke-linecap="round"/>
+  <path d="M65 118H87M99 118H121" stroke="#09090B" stroke-width="8" stroke-linecap="round"/>
+  <text x="96" y="161" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="800" fill="#FAFAFA">SHOEHUNTER</text>
+</svg>

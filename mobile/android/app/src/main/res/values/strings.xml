@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="Typos">
+    <string name="app_name">ShoeHunter Radar</string>
+    <string name="refresh">Yenile</string>
+    <string name="scan_barcode">Barkod veya QR kod tara</string>
+    <string name="scan_text">Metni kamerayla tara</string>
+    <string name="ocr_title">Lens tipi metin seçimi</string>
+    <string name="ocr_live_help">Etiketi kadraja alın. Kutular belirince kareyi dondurun.</string>
+    <string name="ocr_freeze">Kareyi dondur</string>
+    <string name="ocr_resume">Canlıya dön</string>
+    <string name="ocr_select_all">Tümünü seç</string>
+    <string name="ocr_clear">Temizle</string>
+    <string name="ocr_send_to_radar">Radar’a aktar</string>
+    <string name="ocr_cancel">İptal</string>
+    <string name="ocr_no_text">Henüz okunabilir metin bulunamadı.</string>
+    <string name="ocr_freeze_first">Metin kutularına dokunmak için önce kareyi dondurun.</string>
+    <string name="ocr_selection_count">%1$d / %2$d metin alanı seçili</string>
+    <string name="ocr_selected_preview">Seçilen: %1$s</string>
+    <string name="ocr_camera_permission">Canlı metin taraması için kamera izni gereklidir.</string>
+    <string name="ocr_open_settings">Ayarları aç</string>
+    <string name="ocr_camera_failed">Kamera başlatılamadı.</string>
+    <string name="ocr_capture_failed">Kare sabitlenemedi; cihazı oynatmadan kutuları seçin.</string>
+    <string name="ocr_offline_notice">OCR cihazda ve internet olmadan çalışır. Radar aktarımı için sunucu bağlantısı gerekir.</string>
+    <string name="scan_cancelled">Tarama iptal edildi.</string>
+    <string name="scan_failed">Barkod tarayıcı açılamadı.</string>
+    <string name="server_settings">Sunucu ayarları</string>
+    <string name="server_help">Bilgisayar ve Android cihaz aynı ağdayken bilgisayarın IP adresini kullanın. Telefonda localhost çalışmaz.</string>
+    <string name="save_and_connect">Kaydet ve bağlan</string>
+    <string name="invalid_server_url">http:// veya https:// ile başlayan geçerli bir adres girin.</string>
+    <string name="exit">Çıkış</string>
+    <string name="connection_failed">Sunucuya bağlanılamadı</string>
+    <string name="try_again">Tekrar dene</string>
+    <string name="network_settings">Wi-Fi ayarlarını aç</string>
+    <string name="no_network">Etkin bir ağ bağlantısı bulunamadı.</string>
+    <string name="web_error_format">Bağlantı hatası (%1$d): %2$s</string>
+    <string name="http_error_format" tools:ignore="PluralsCandidate">Sunucu HTTP %1$d yanıtı verdi.</string>
+    <string name="error_detail_format">%1$s\n%2$s</string>
+    <string name="no_app_for_link">Bu bağlantıyı açabilecek uygulama bulunamadı.</string>
+    <string name="choose_photo">Fotoğraf çek veya galeriden seç</string>
+    <string name="no_file_picker">Dosya seçici bulunamadı.</string>
+    <string name="unsupported_download">Bu indirme türü desteklenmiyor.</string>
+    <string name="downloading">Dosya indiriliyor</string>
+    <string name="download_started">İndirme başlatıldı.</string>
+    <string name="download_failed">İndirme başlatılamadı.</string>
+</resources>

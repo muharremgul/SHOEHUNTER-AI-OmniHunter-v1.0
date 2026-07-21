@@ -1,0 +1,7 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="112" fill="#09090B"/>
+  <path d="M104 313C153 342 218 358 314 358H405C423 358 438 343 438 325V307C438 293 427 282 413 282H344C311 282 282 268 253 244L197 196C184 185 165 184 151 195L113 225C100 235 94 253 100 268L104 313Z" fill="#CCFF00"/>
+  <path d="M136 269L187 231L236 274C266 301 305 318 348 318H421" stroke="#09090B" stroke-width="22" stroke-linecap="round"/>
+  <path d="M174 314H232M264 314H322" stroke="#09090B" stroke-width="22" stroke-linecap="round"/>
+  <text x="256" y="429" text-anchor="middle" font-family="Arial, sans-serif" font-size="52" font-weight="800" fill="#FAFAFA">SHOEHUNTER</text>
+</svg>

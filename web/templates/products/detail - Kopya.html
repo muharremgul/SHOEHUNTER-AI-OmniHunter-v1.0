@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.display_name }} | ShoeHunter AI{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="page-title">{{ product.display_name }}</h1>
+        <p class="text-muted">{{ product.category or "Kategori yok" }} • {{ product.gender or "Genel" }}</p>
+    </div>
+
+    <a href="{{ url_for('listing_new', product_id=product.id) }}" class="btn btn-primary">+ Mağaza Linki Ekle</a>
+</div>
+
+<div class="alert alert-info">
+    Bu sürümde takip sistemi <strong>sadece fiyat hedefini</strong> kontrol eder. Stok/beden uyarısı şimdilik kapalı. Çünkü stok parser’a dokununca küçük bir dijital deprem yaşadık, bunu tekrar etmiyoruz.
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card stat-card mb-3">
+            <div class="card-header bg-white">
+                <strong>Fiyat Takip Kuralları</strong>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('watch_rule_new', product_id=product.id) }}" class="row g-2 align-items-end mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Beden notu</label>
+                        <input name="size" class="form-control" placeholder="İsteğe bağlı: 44">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Hedef fiyat</label>
+                        <input name="target_price" class="form-control" placeholder="Örn: 4500" required>
+                    </div>
+
+                    <div class="col-md-5">
+                        <button class="btn btn-primary">Fiyat Takibine Ekle</button>
+                    </div>
+                </form>
+
+                {% if watch_rules %}
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for rule in watch_rules %}
+                            <div class="border rounded-4 px-3 py-2 bg-light">
+                                {% if rule.size and rule.size != "-" %}
+                                    <strong>{{ rule.size }}</strong> notu •
+                                {% endif %}
+                                {{ "%.2f"|format(rule.target_price) }} TL altı
+
+                                <form method="post" action="{{ url_for('watch_rule_delete', rule_id=rule.id) }}" class="d-inline">
+                                    <button class="btn btn-sm btn-link text-danger p-0 ms-2">sil</button>
+                                </form>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <form method="post" action="{{ url_for('product_evaluate', product_id=product.id) }}" class="mt-3">
+                        <button class="btn btn-sm btn-success">Fiyat Kurallarını Şimdi Değerlendir</button>
+                    </form>
+                {% else %}
+                    <p class="text-muted mb-0">Henüz fiyat takip kuralı yok.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card stat-card mb-3">
+            <div class="card-header bg-white">
+                <strong>Mağaza Linkleri</strong>
+            </div>
+            <div class="card-body">
+                {% if listings %}
+                    {% for listing in listings %}
+                        <div class="border rounded-4 p-3 mb-3">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h5 class="mb-1">{{ listing.store.name }}</h5>
+                                    <a href="{{ listing.url }}" target="_blank" class="small">Ürün sayfasını aç</a>
+                                </div>
+                                <div class="text-end">
+                                    {% if listing.last_price is not none %}
+                                        <div class="h4 mb-0">{{ "%.2f"|format(listing.last_price) }} TL</div>
+                                        {% if listing.last_old_price is not none and listing.last_old_price != listing.last_price %}
+                                            <div class="text-muted text-decoration-line-through">{{ "%.2f"|format(listing.last_old_price) }} TL</div>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge text-bg-secondary">Henüz kontrol edilmedi</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            {% if listing.last_title %}
+                                <div class="mt-2 text-muted small">Sayfa başlığı: {{ listing.last_title }}</div>
+                            {% endif %}
+
+                            {% if listing.sizes %}
+                                <div class="mt-3">
+                                    <div class="small text-muted mb-2">
+                                        Yeşil: stokta • Gri: tükendi. Bu görünüm v0.4.1 parser çıktısıdır.
+                                    </div>
+
+                                    {% for item in listing.sizes %}
+                                        {% if item.in_stock %}
+                                            <span class="badge rounded-pill text-bg-success me-1 mb-1" title="Stokta">{{ item.size }}</span>
+                                        {% else %}
+                                            <span class="badge rounded-pill text-bg-secondary me-1 mb-1" title="Tükendi">
+                                                <span class="text-decoration-line-through">{{ item.size }}</span> tükendi
+                                            </span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+
+                            <div class="mt-3 d-flex gap-2">
+                                <form method="post" action="{{ url_for('listing_check', listing_id=listing.id) }}">
+                                    <button class="btn btn-sm btn-success">Şimdi Kontrol Et</button>
+                                </form>
+
+                                <form method="post" action="{{ url_for('listing_delete', listing_id=listing.id) }}" onsubmit="return confirm('Bu mağaza linkini silmek istiyor musun?')">
+                                    <button class="btn btn-sm btn-outline-danger">Linki Sil</button>
+                                </form>
+                            </div>
+
+                            {% if listing.last_checked_at %}
+                                <div class="text-muted small mt-2">
+                                    Son kontrol: {{ listing.last_checked_at }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted mb-0">Bu ürüne henüz mağaza linki eklenmemiş.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card stat-card mb-3">
+            <div class="card-header bg-white">
+                <strong>Ürün Fiyat Uyarıları</strong>
+            </div>
+            <div class="card-body">
+                {% if alerts %}
+                    <div class="list-group list-group-flush">
+                        {% for alert in alerts %}
+                            <div class="list-group-item">
+                                <strong>{{ alert.title }}</strong>
+                                {% if not alert.is_read %}
+                                    <span class="badge text-bg-danger">Yeni</span>
+                                {% endif %}
+                                <br>
+                                <span class="text-muted small">{{ alert.message }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">Bu ürün için fiyat uyarısı yok.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card stat-card">
+            <div class="card-header bg-white">
+                <strong>Fiyat Geçmişi</strong>
+            </div>
+            <div class="card-body">
+                {% if price_history %}
+                    <div class="list-group list-group-flush">
+                        {% for row in price_history %}
+                            <div class="list-group-item">
+                                <strong>{{ "%.2f"|format(row.price) }} TL</strong><br>
+                                <span class="text-muted small">{{ row.store.name }} • {{ row.checked_at }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">Fiyat geçmişi yok.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

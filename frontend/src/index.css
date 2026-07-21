@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: #09090b;
+  color: #fafafa;
+  font-family: "IBM Plex Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+::selection {
+  background: #ccff00;
+  color: #000;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #09090b;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+.card {
+  @apply bg-[#0e0e11] border border-zinc-800 rounded-lg;
+}
+
+.btn-primary {
+  @apply bg-primary text-black font-semibold rounded-lg px-4 py-2 text-sm hover:bg-[#B3E600] transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-secondary {
+  @apply bg-transparent border border-zinc-700 text-white rounded-lg px-4 py-2 text-sm hover:bg-zinc-800 transition-colors duration-200 disabled:opacity-50;
+}
+
+.input-dark {
+  @apply w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors;
+}
+
+.badge-stock {
+  @apply text-xs font-medium px-2 py-0.5 rounded bg-primary/20 text-primary border border-primary/30;
+}
+
+.badge-nostock {
+  @apply text-xs font-medium px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700;
+}
+
+.badge-discount {
+  @apply text-xs font-medium px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30;
+}
+
+@media (max-width: 767px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    min-width: 320px;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    @apply min-h-11;
+  }
+
+  .input-dark {
+    @apply min-h-11 text-base;
+  }
+}

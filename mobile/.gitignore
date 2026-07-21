@@ -1,0 +1,6 @@
+.toolchain/
+android/.gradle/
+android/app/build/
+android/local.properties
+logs/
+dist/*.apk

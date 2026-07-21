@@ -1,0 +1,39 @@
+{"dataset":"stage_counts","order":1,"stage_label":"AI Arama - bulunan URL","count":6}
+{"dataset":"stage_counts","order":2,"stage_label":"AI Arama - canli fiyat","count":0}
+{"dataset":"stage_counts","order":3,"stage_label":"AI Arama - canli stok","count":0}
+{"dataset":"stage_counts","order":4,"stage_label":"AI Arama - beden verisi","count":0}
+{"dataset":"stage_counts","order":5,"stage_label":"Radar - bulunan aday URL","count":20}
+{"dataset":"stage_counts","order":6,"stage_label":"Radar - canli fiyat","count":0}
+{"dataset":"stage_counts","order":7,"stage_label":"Radar - canli stok","count":0}
+{"dataset":"stage_counts","order":8,"stage_label":"Radar - beden verisi","count":0}
+{"dataset":"stage_counts","order":9,"stage_label":"Bagli Adidas kaydi - URL","count":13}
+{"dataset":"stage_counts","order":10,"stage_label":"Bagli Adidas kaydi - canli fiyat","count":0}
+{"dataset":"stage_counts","order":11,"stage_label":"Bagli Adidas kaydi - canli stok","count":0}
+{"dataset":"stage_counts","order":12,"stage_label":"Bagli Adidas kaydi - beden verisi","count":0}
+{"dataset":"search_methods","order":1,"method":"Manuel urun linki / hizli takip","mechanism":"URL dogrulama, tarayici ile urun detayi, ProductGroup parser","actual_result":"13 Adidas baglantisinin 11'i blocked, 2'si error; canli fiyat/stok/beden yok","reliability":"Basarisiz"}
+{"dataset":"search_methods","order":2,"method":"Urun listesi yenileme / tum linkleri tara","mechanism":"Kayitli URL'leri yeniden acip fiyat gecmisi, stok ve alarm guncelleme","actual_result":"Ayni 403/bot korumasi ve yerel WinError 5 siniflari tekrarlandi","reliability":"Basarisiz"}
+{"dataset":"search_methods","order":3,"method":"AI Arama (sifir link)","mechanism":"Sorgu normalizasyonu, Playwright arama, kart/Next parser, sitemap/Brave fallback, ayrinti zenginlestirme","actual_result":"Izole test: 6 sitemap URL; dogrudan HTTP 403; 0 fiyat, 0 stok, 0 beden","reliability":"URL kesfi kismi"}
+{"dataset":"search_methods","order":4,"method":"Urun Radar","mechanism":"Magaza aramasi, fallback, urun kimligi puani, auto/review/rejected adaylar","actual_result":"20 sitemap adayi; 14 auto, 4 review, 2 rejected; 0 yeni baglanti; fiyatlar null","reliability":"Aday kesfi kismi"}
+{"dataset":"search_methods","order":5,"method":"Sitemap/Brave katmanli kesif","mechanism":"robots ve sitemap URL'lerini sorgu tokenlariyla eslestirme; opsiyonel Brave","actual_result":"URL ve baslik/model ipucu buluyor; canli ticari veri uretmiyor","reliability":"Kesif icin orta"}
+{"dataset":"search_methods","order":6,"method":"Manuel fiyat","mechanism":"Engelli kayda kullanici fiyat girdisi","actual_result":"JH6206 satirinda 10.199 TL gorunebilir; canli stok ve beden kaniti degil","reliability":"Kullanici girdisi"}
+{"dataset":"search_methods","order":7,"method":"Offline parser / birim testi","mechanism":"Kontrollu ProductGroup JSON-LD fixture'i","actual_result":"6.799 TL guncel, 7.999 TL eski fiyat ve iki beden dogru ayrildi","reliability":"Parser mantigi icin yuksek"}
+{"dataset":"search_methods","order":8,"method":"Magaza sagligi / devre kesici","mechanism":"Basari, hata, blocked ve ornek fiyat-stok kalitesini izleme","actual_result":"13 kontrol, 4 genel basari, 9 hata, 6 blocked; fiyat ve stok ornegi basarisiz","reliability":"Operasyonel koruma"}
+{"dataset":"ai_results","rank":1,"code":"HQ5000","title":"Adizero Evo SL","match_score":100,"source":"sitemap","detail_data":"Yok"}
+{"dataset":"ai_results","rank":2,"code":"IH5564","title":"Adizero Adios Pro Evo 1","match_score":92,"source":"sitemap","detail_data":"Yok; yanlis aile riski"}
+{"dataset":"ai_results","rank":3,"code":"IH9360","title":"Disney SL72","match_score":60,"source":"sitemap","detail_data":"Yok; yanlis pozitif"}
+{"dataset":"ai_results","rank":4,"code":"JH6206","title":"Adizero Evo SL","match_score":100,"source":"sitemap","detail_data":"Yok"}
+{"dataset":"ai_results","rank":5,"code":"JH6208","title":"Adizero Evo SL","match_score":100,"source":"sitemap","detail_data":"Yok"}
+{"dataset":"ai_results","rank":6,"code":"JP7147","title":"Adizero Evo SL","match_score":100,"source":"sitemap","detail_data":"Yok"}
+{"dataset":"code_map","order":1,"component":"Adidas motoru","role":"Arama URL'si, kart/Next parser, ProductGroup fiyat-stok-beden parser'i","path":"code/current/backend/stores/adidas.py"}
+{"dataset":"code_map","order":2,"component":"Genel magaza motoru","role":"Guvenli HTTP, tekrar deneme, onbellek, bot sinifi, urun verisi","path":"code/current/backend/engines.py"}
+{"dataset":"code_map","order":3,"component":"Tarayici aramasi","role":"JS gerektiren magaza arama sayfalarini toplu calistirma","path":"code/current/backend/browser_search.py"}
+{"dataset":"code_map","order":4,"component":"Playwright havuzu","role":"Paylasilan Chromium, magaza baglami, limitler ve guvenlik","path":"code/current/backend/browser_runtime.py"}
+{"dataset":"code_map","order":5,"component":"Kesif kaynaklari","role":"robots, sitemap ve opsiyonel Brave URL kesfi","path":"code/current/backend/discovery_sources.py"}
+{"dataset":"code_map","order":6,"component":"Radar servisi","role":"Aday kesfi, siniflandirma, baglama ve periyodik calisma","path":"code/current/backend/discovery_service.py"}
+{"dataset":"code_map","order":7,"component":"Urun kimligi","role":"Marka/model/token benzerligi ve eslesme karari","path":"code/current/backend/product_identity.py"}
+{"dataset":"code_map","order":8,"component":"API sunucusu","role":"AI Arama, link ekleme, fallback, enrichment ve liste yenileme","path":"code/current/backend/server.py"}
+{"dataset":"code_map","order":9,"component":"Magaza sagligi","role":"Hata sayaci, blocked durumu ve devre kesici","path":"code/current/backend/store_health.py"}
+{"dataset":"code_map","order":10,"component":"Is kuyrugu","role":"Radar ve toplu taramalari kalici is olarak calistirma","path":"code/current/backend/job_queue.py"}
+{"dataset":"code_map","order":11,"component":"AI Arama arayuzu","role":"Sifir-link arama sonuclarini ve durumlari gosterme","path":"code/current/frontend/src/pages/AISearch.jsx"}
+{"dataset":"code_map","order":12,"component":"Radar arayuzu","role":"Adaylari ve tekrar tarama islerini yonetme","path":"code/current/frontend/src/pages/ProductRadar.jsx"}
+{"dataset":"code_map","order":13,"component":"Parser ve kesif testleri","role":"ProductGroup, sitemap basligi, kimlik ve canli sozlesme kontrolleri","path":"code/current/backend/tests/"}

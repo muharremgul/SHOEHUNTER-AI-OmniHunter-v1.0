@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Fiyat Uyarıları | ShoeHunter AI{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="page-title">Fiyat Uyarıları</h1>
+        <p class="text-muted">Yakalanan tüm indirimler ve sistem uyarıları burada birikir.</p>
+    </div>
+    
+    <form method="post" action="{{ url_for('delete_all_alerts') }}" onsubmit="return confirm('Tüm uyarıları silmek istediğinize emin misiniz? Bu işlem geri alınamaz.');">
+        <button class="btn btn-danger">🗑️ Tümünü Temizle</button>
+    </form>
+</div>
+
+<div class="card stat-card">
+    <div class="card-body p-0">
+        {% if alerts %}
+            <div class="list-group list-group-flush">
+                {% for alert in alerts %}
+                <div class="list-group-item p-4">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5 class="mb-1">
+                                {% if not alert.is_read %}
+                                    <span class="badge bg-danger me-2">Yeni</span>
+                                {% endif %}
+                                {{ alert.title }}
+                            </h5>
+                            <p class="mb-1 text-muted">{{ alert.message }}</p>
+                            <small class="text-secondary">
+                                {{ alert.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                {% if alert.price %} • Fiyat: <strong>{{ alert.price }} TL</strong>{% endif %}
+                            </small>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            {% if alert.listing and alert.listing.url %}
+                                <a href="{{ alert.listing.url }}" target="_blank" class="btn btn-sm btn-primary">Satın Al 🛒</a>
+                            {% endif %}
+                            <form method="post" action="{{ url_for('delete_alert', alert_id=alert.id) }}">
+                                <button class="btn btn-sm btn-outline-danger">Sil</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="p-5 text-center text-muted">
+                <h4>Henüz hiç uyarı yok</h4>
+                <p>Ayakkabı avcıları pusuda bekliyor. Fiyatlar düştüğünde burada göreceksiniz.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

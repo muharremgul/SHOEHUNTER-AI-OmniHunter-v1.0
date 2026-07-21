@@ -1,0 +1,60 @@
+plugins {
+    id "com.android.application"
+}
+
+def configuredServerUrl = providers.gradleProperty("shoehunterServerUrl")
+        .orElse("http://192.168.1.131:3000")
+        .get()
+
+android {
+    namespace "com.shoehunter.radar"
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.shoehunter.radar"
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName "0.1.0"
+
+        buildConfigField "String", "DEFAULT_SERVER_URL", "\"${configuredServerUrl}\""
+        buildConfigField "String", "DEFAULT_START_PATH", '"/urunler"'
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-test"
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // Google's official permission-less scanner UI; the recognition model runs on-device.
+    implementation "com.google.android.gms:play-services-code-scanner:16.1.0"
+
+    // CameraX drives the live OCR preview. The ML Kit Latin model is bundled in
+    // the APK so text recognition does not need a network connection at runtime.
+    implementation "androidx.activity:activity:1.10.1"
+    implementation "androidx.camera:camera-core:1.4.2"
+    implementation "androidx.camera:camera-camera2:1.4.2"
+    implementation "androidx.camera:camera-lifecycle:1.4.2"
+    implementation "androidx.camera:camera-view:1.4.2"
+    implementation "androidx.core:core:1.15.0"
+    implementation "com.google.mlkit:text-recognition:16.0.1"
+
+    testImplementation "junit:junit:4.13.2"
+}

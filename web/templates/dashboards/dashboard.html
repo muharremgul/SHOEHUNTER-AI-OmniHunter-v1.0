@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | ShoeHunter AI{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="text-muted">ShoeHunter AI {{ stats.version }} çalışıyor. Bu sürüm stok parser’a dokunmadan sadece fiyat takibi ekler. Sonunda biraz sağduyu, geç geldi ama geldi.</p>
+    </div>
+    <a href="{{ url_for('product_new') }}" class="btn btn-primary">+ Yeni Ürün</a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-2">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="text-muted">Ürün</div>
+                <h2>{{ stats.product_count }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="text-muted">Mağaza</div>
+                <h2>{{ stats.store_count }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="text-muted">Link</div>
+                <h2>{{ stats.listing_count }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="text-muted">Takip</div>
+                <h2>{{ stats.watch_count }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="text-muted">Yeni Uyarı</div>
+                <h2>{{ stats.unread_alert_count }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="text-muted">Fiyat Kaydı</div>
+                <h2>{{ stats.price_count }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card stat-card mb-3">
+            <div class="card-header bg-white">
+                <strong>Son Fiyat Uyarıları</strong>
+                <a href="{{ url_for('alerts') }}" class="float-end small">Tümünü gör</a>
+            </div>
+            <div class="card-body">
+                {% if latest_alerts %}
+                    <div class="list-group list-group-flush">
+                        {% for alert in latest_alerts %}
+                            <a href="{{ url_for('product_detail', product_id=alert.product_id) }}" class="list-group-item list-group-item-action">
+                                <strong>{{ alert.title }}</strong>
+                                {% if not alert.is_read %}
+                                    <span class="badge text-bg-danger ms-2">Yeni</span>
+                                {% endif %}
+                                <br>
+                                <span class="text-muted small">{{ alert.message }}</span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">Henüz fiyat uyarısı yok. İndirim evreni yine sessiz numarası yapıyor.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card stat-card">
+            <div class="card-header bg-white">
+                <strong>Son Eklenen Ürünler</strong>
+            </div>
+            <div class="card-body">
+                {% if latest_products %}
+                    <div class="list-group list-group-flush">
+                        {% for product in latest_products %}
+                            <a href="{{ url_for('product_detail', product_id=product.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ product.display_name }}</strong><br>
+                                    <span class="text-muted small">{{ product.category or "Kategori yok" }} • {{ product.gender or "Genel" }}</span>
+                                </div>
+                                <span class="brand-badge">{{ product.brand }}</span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">Henüz ürün yok.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card stat-card">
+            <div class="card-header bg-white">
+                <strong>Son Mağaza Linkleri</strong>
+            </div>
+            <div class="card-body">
+                {% if latest_listings %}
+                    <div class="list-group list-group-flush">
+                        {% for listing in latest_listings %}
+                            <a href="{{ url_for('product_detail', product_id=listing.product_id) }}" class="list-group-item list-group-item-action">
+                                <strong>{{ listing.product.display_name }}</strong><br>
+                                <span class="text-muted small">{{ listing.store.name }}</span>
+                                {% if listing.last_price is not none %}
+                                    <span class="float-end">{{ "%.2f"|format(listing.last_price) }} TL</span>
+                                {% endif %}
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">Henüz mağaza linki yok.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

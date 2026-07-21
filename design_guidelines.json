@@ -1,0 +1,139 @@
+{
+  "project_name": "ShoeHunter AI / OmniHunter",
+  "domain": "E-commerce Aggregator & Sneaker Tracking SaaS",
+  "language": "tr",
+  "theme": "Dark",
+  "archetype": "High-End Sneaker Tech (Mix of Archetype 5 Luxury & Archetype 2 Performance Pro)",
+  "emotional_tone": "Exclusive, High-Performance, Technical, Hype",
+  "design_philosophy": "A 'Hypebeast Terminal'. It should feel like an elite command center for sneakerheads. Dark, high-contrast, data-dense but highly legible. The product is the hero, data is the weapon.",
+  "colors": {
+    "background": "#09090B",
+    "surface": "#18181B",
+    "surface_hover": "#27272A",
+    "primary": "#CCFF00",
+    "primary_foreground": "#000000",
+    "secondary": "#27272A",
+    "secondary_foreground": "#FAFAFA",
+    "accent": "#FF3B30",
+    "accent_foreground": "#FFFFFF",
+    "muted": "#27272A",
+    "muted_foreground": "#A1A1AA",
+    "border": "#27272A",
+    "ring": "#CCFF00",
+    "chart_colors": [
+      "#CCFF00",
+      "#FF3B30",
+      "#3B82F6",
+      "#8B5CF6",
+      "#10B981"
+    ],
+    "css_variables_hsl": {
+      "--background": "240 10% 3.9%",
+      "--foreground": "0 0% 98%",
+      "--card": "240 10% 3.9%",
+      "--card-foreground": "0 0% 98%",
+      "--popover": "240 10% 3.9%",
+      "--popover-foreground": "0 0% 98%",
+      "--primary": "74 100% 50%",
+      "--primary-foreground": "0 0% 0%",
+      "--secondary": "240 3.7% 15.9%",
+      "--secondary-foreground": "0 0% 98%",
+      "--muted": "240 3.7% 15.9%",
+      "--muted-foreground": "240 5% 64.9%",
+      "--accent": "0 84% 60%",
+      "--accent-foreground": "0 0% 98%",
+      "--destructive": "0 62.8% 30.6%",
+      "--destructive-foreground": "0 0% 98%",
+      "--border": "240 3.7% 15.9%",
+      "--input": "240 3.7% 15.9%",
+      "--ring": "74 100% 50%",
+      "--radius": "0.5rem"
+    }
+  },
+  "typography": {
+    "font_heading": "Outfit",
+    "font_body": "IBM Plex Sans",
+    "font_mono": "JetBrains Mono",
+    "setup_instructions": "Import Outfit, IBM Plex Sans, and JetBrains Mono from Google Fonts. Assign 'font-sans' to IBM Plex Sans, 'font-heading' to Outfit, and 'font-mono' to JetBrains Mono in tailwind.config.js.",
+    "hierarchy": {
+      "h1": "text-4xl sm:text-5xl font-bold tracking-tighter text-foreground",
+      "h2": "text-2xl sm:text-3xl font-semibold tracking-tight text-foreground",
+      "h3": "text-xl sm:text-2xl font-medium tracking-tight text-foreground",
+      "h4": "text-lg font-medium text-foreground",
+      "body": "text-base text-muted-foreground leading-relaxed",
+      "small": "text-sm text-muted-foreground",
+      "overline": "text-xs font-bold uppercase tracking-[0.2em] text-primary"
+    }
+  },
+  "layout_and_spacing": {
+    "strategy": "Control Room Grid. High density for analytics, wide breathing room for product images.",
+    "spacing_scale": "Use Tailwind default spacing but favor generous padding (p-6, p-8) inside dashboard widgets to prevent clutter. For tight data rows, use py-2 px-4.",
+    "dashboard_grid": "grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6. Dashboard widgets should use col-span variations to break monotony (e.g., Main Chart col-span-2 or 3, AI Feed col-span-1 row-span-2).",
+    "container": "max-w-[1600px] mx-auto w-full",
+    "corners": "Rounded-lg (0.5rem) universally. Avoid excessive pill shapes unless for specific tags/badges."
+  },
+  "surfaces_and_borders": {
+    "cards": "Solid flat background (bg-zinc-950), 1px crisp border (border-zinc-800). No soft drop shadows. Use subtle glow or translation on hover.",
+    "glassmorphism": "Used ONLY for Sticky Nav or AI Chat modal. bg-black/60 backdrop-blur-xl border-b border-white/10.",
+    "accents": "For active price drops or hit targets, use a 1px solid primary (Volt) or accent (Red) border to draw attention immediately.",
+    "hover_states": "Interactive elements must have distinct hover states. Elevate (-translate-y-0.5) and brighten border color."
+  },
+  "components": {
+    "buttons": "Primary buttons: bg-primary text-black font-semibold hover:bg-[#B3E600]. Secondary: bg-transparent border border-zinc-700 text-white hover:bg-zinc-800.",
+    "badges": "For stock status. 'In Stock': bg-primary/20 text-primary border border-primary/30. 'Out of Stock': bg-zinc-800 text-zinc-400. 'Discounted': bg-red-500/20 text-red-500 border border-red-500/30.",
+    "tables": "Dense. border-collapse. border-b border-zinc-800 for rows. hover:bg-zinc-900/50. Numeric data must be tabular-nums right-aligned.",
+    "charts": "Recharts or Shadcn Charts. Tooltips must have dark backgrounds and sharp borders. Lines should be 2px-3px thick, glowing if possible.",
+    "ai_chat": "The 'AI Koç' (Coach) interface should look like a command-line terminal mixed with modern chat. Monospace fonts for debug/rules, normal fonts for chat."
+  },
+  "icons": {
+    "library": "@phosphor-icons/react",
+    "style": "Duotone or Regular weight. Technical, clean, highly legible.",
+    "installation": "yarn add @phosphor-icons/react"
+  },
+  "motion_and_interaction": {
+    "transitions": "Fast and snappy. duration-200 ease-out.",
+    "loaders": "Avoid generic spinners. Use highly technical loaders like a scanning line (Aceternity style) or an ASCII sneaker rendering.",
+    "stagger": "List items (products, alerts) should stagger in on load."
+  },
+  "accessibility_and_testing": {
+    "contrast": "Ensure all muted-foreground text passes minimum 4.5:1 ratio against the dark background. Use text-zinc-300 if zinc-400 is too dark.",
+    "testing_attributes": "CRITICAL: All interactive elements (buttons, inputs, links, tabs) MUST include 'data-testid' in kebab-case representing their role. Example: data-testid='add-alert-button', data-testid='product-card-123'."
+  },
+  "media": {
+    "instructions_to_main_agent": "Use these exact images for placeholders in the dashboard, product list, and AI coach features. Do not use generic placeholders like via.placeholder.com.",
+    "image_urls": [
+      {
+        "url": "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?crop=entropy&cs=srgb&fm=jpg",
+        "category": "product_placeholder",
+        "description": "Green and black Nike athletic shoe - Perfect for high-contrast Volt theme."
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?crop=entropy&cs=srgb&fm=jpg",
+        "category": "product_placeholder",
+        "description": "Red Nike sneaker - Great for 'Price Drop' or 'Alert' mock data."
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1552346154-21d32810aba3?crop=entropy&cs=srgb&fm=jpg",
+        "category": "product_placeholder",
+        "description": "Black, white, and red Air Jordan - Iconic sneaker for top-tier tracking lists."
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?crop=entropy&cs=srgb&fm=jpg",
+        "category": "product_placeholder",
+        "description": "White and blue Nike Air Force 1 High."
+      }
+    ]
+  },
+  "page_specific_guidelines": {
+    "Dashboard_Ozet": "Top area: 4 Metric cards (Total Tracked, Active Alerts, Price Drops Today, Scheduler Status). Middle: Large Price History Chart (Recharts) spanning 2 columns, next to 'Recent Alarms' feed.",
+    "Urunler_Listesi": "Grid of products. Each card shows: Image, Brand/Model, Current Best Price, Target Price, Status Badge (Stock/Discount), and a mini sparkline chart of recent price.",
+    "AI_Arama": "Zero-link search. A massive search input in the center of the page. Typing queries an API (mocked) and instantly shows a bento-grid of results parsed from various stores.",
+    "AI_Koc": "A slide-out or full-page chat interface. User types 'Bana koşu için 3000 TL altı ayakkabı bul' (Find me running shoes under 3000 TL). AI responds with bento-style product suggestions inline in the chat.",
+    "Debug_Lab": "A hacker-style terminal view. Monospace fonts. Shows raw JSON payloads, parser latency, and proxy status. Uses JetBrains Mono.",
+    "Ayarlar": "Simple form inputs for Telegram Webhook URL, Cron job intervals. Use Shadcn Form, Input, Select, and Switch components."
+  },
+  "implementation_notes": {
+    "language": "ALL TEXT IN THE UI MUST BE IN TURKISH (tr-TR). Example: 'Dashboard' -> 'Panel', 'Products' -> 'Ürünler', 'Settings' -> 'Ayarlar'.",
+    "components_extension": "Use .js or .jsx file extensions for React components. DO NOT use .tsx."
+  }
+}

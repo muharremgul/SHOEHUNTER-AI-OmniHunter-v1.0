@@ -1,0 +1,29 @@
+ADIDAS.COM.TR TEKNIK DEVIR PAKETI
+Tarih: 13 Temmuz 2026
+
+Bu paket, ShoeHunter AI icindeki adidas.com.tr arama ve urun okuma calismalarini
+baska bir teknik sisteme devretmek icin hazirlanmistir. Uygulama kaynak kodunda
+degisiklik yapilmamistir.
+
+ANA DOSYALAR
+- Adidas_com_tr_Teknik_Devir_Raporu.html: okunabilir ana rapor
+- artifact.json: raporun dogrulanabilir kaynak verisi
+- evidence/adidas.html: kullanicinin verdigi kaydedilmis ShoeHunter AI sayfasi
+- evidence/runtime_observations.json: veritabani ve ekran kanitlarinin ozet kaydi
+- evidence/live_isolated_ai_search_2026-07-13.json: izole Adidas AI Arama testi
+
+KOD KAPSAMI
+- code/current: bugunku Adidas motoru ve onu kullanan ortak arama altyapisi
+- code/history/v1.1: Git v1.1 surumundeki ilgili kaynaklar
+- code/history/initial: ilk committeki ilgili kaynaklar
+
+GUVENLIK SINIRI
+- Gercek .env dosyalari, API anahtarlari, Telegram tokenlari ve parolalar alinmadi.
+- Veritabani, yedek, log, tarayici profili ve kullanici oturumu alinmadi.
+- Paket, kaynak kodu inceleme ve teknik devir icindir; calisan tam proje yedegi degildir.
+- Bot korumasini asmaya yonelik gizli bilgi veya oturum verisi icermemektedir.
+
+ONEMLI SONUC
+Adidas entegrasyonu urun URL'lerini sitemap yoluyla bulabilmektedir; ancak canli
+adidas.com.tr urun sayfasindan fiyat, stok ve beden bilgisi guvenilir bicimde
+okunamamaktadir. Ayrinti ve kanitlar ana rapordadir.

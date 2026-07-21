@@ -1,0 +1,26 @@
+PAKET DOGRULAMA MAKBUZU
+Tarih: 13 Temmuz 2026
+
+Rapor olusturma:
+- artifact.json dogrulamasi: BASARILI
+- tasinabilir HTML paketleme: BASARILI
+- yapisal dogrulama: BASARILI
+- icerik: 19 blok, 1 grafik, 4 tablo
+- gelismis Chromium testi: CALISTIRILAMADI (spawn EPERM)
+- HTML, JavaScript olmadan da okunabilir anlamsal yedek icerir.
+
+Guvenlik taramasi:
+- gercek .env / anahtar / sertifika / veritabani / log dosyasi: 0
+- yaygin gercek token ve ozel anahtar kalibi: 0
+- verilen adidas.html ile paket kopyasinin SHA-256 degeri: ESLESIYOR
+
+Kod butunlugu:
+- guncel Adidas motoru: VAR
+- Git v1.1 Adidas motoru: VAR
+- ilk commit Adidas motoru: VAR
+- uygulama kaynak kodunda bu is icin degisiklik yapilmadi.
+
+Not:
+Chromium testi yerel ortam izinleri nedeniyle calismadigi icin mobil/masaustu
+etkilesimli gorunum otomatik olarak sertifikalandirilmamistir. Yapisal paket,
+gomulu veri ve yazdirilabilir yedek gorunum dogrulanmistir.

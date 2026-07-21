@@ -1,0 +1,66 @@
+{
+  "captured_at": "2026-07-13T10:45:00+03:00",
+  "scope": "ShoeHunter AI adidas.com.tr entegrasyonu",
+  "saved_page": {
+    "file_name": "adidas.html",
+    "size_bytes": 248352,
+    "last_write_time": "2026-07-13T10:17:09+03:00",
+    "sha256": "47CE322224672B21597A67F5328DBE74A7F05277D562CD478D283F7BB6616376",
+    "document_title": "ShoeHunter AI",
+    "json_ld_count": 0,
+    "has_next_data": false,
+    "classification": "ShoeHunter AI yerel urun detay ekrani; ham adidas.com.tr HTML kaynagi degil"
+  },
+  "product_watch": {
+    "watch_id": "d6c44823-d2d4-43fb-ac98-3c08d1bea9d2",
+    "product_id": "afbb1a3b-4bea-4425-8778-ae85ecab446b",
+    "query": "adidas adizero evo sl",
+    "brand": "adidas",
+    "model": "adizero evo sl",
+    "desired_sizes": ["43", "43 1/3", "44"],
+    "target_price_try": 5500
+  },
+  "saved_page_totals": {
+    "store_links": 45,
+    "rules": 1,
+    "alerts": 9,
+    "adidas_links": 13,
+    "adidas_blocked": 11,
+    "adidas_error": 2,
+    "adidas_live_price_success": 0,
+    "adidas_live_stock_success": 0,
+    "adidas_live_size_success": 0
+  },
+  "adidas_attached_codes": [
+    "HQ5000", "JH6206", "JH6208", "JP7147", "JP7149", "JQ4409", "JQ4411",
+    "JQ4412", "JQ4440", "JQ4441", "JQ4443", "JR2023", "JR3416"
+  ],
+  "adidas_errors": {
+    "http_403": 7,
+    "generic_bot_or_rate_limit": 4,
+    "winerror_5_local_access_denied": 2
+  },
+  "store_health": {
+    "total_checks": 13,
+    "total_success": 4,
+    "total_failures": 9,
+    "blocked_count": 6,
+    "last_status": "ok",
+    "circuit_state": "closed",
+    "sample_price_success": false,
+    "sample_stock_success": false
+  },
+  "focused_radar_run": {
+    "status": "completed",
+    "store": "Adidas Turkiye",
+    "aggregate_status": "ok",
+    "count": 20,
+    "fallback_used": true,
+    "initial_classification": {"auto": 14, "review": 4, "rejected": 2},
+    "current_candidate_state": {"attached": 13, "auto": 1, "review": 4, "rejected": 2},
+    "new_listings": 0,
+    "all_sources": "sitemap",
+    "all_prices_null": true
+  },
+  "interpretation": "Kesif ve URL eslestirme kismen calisiyor; adidas.com.tr canli urun ayrintisi, fiyat, stok ve beden zenginlestirmesi guvenilir bicimde calismiyor."
+}

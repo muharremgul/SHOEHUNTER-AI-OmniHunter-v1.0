@@ -1,0 +1,96 @@
+INFO:     127.0.0.1:56292 - "GET /api/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56292 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49324 - "GET /api/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49324 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50025 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53211 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57709 - "GET /api/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57709 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50037 - "GET /api/dashboard/deals HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65387 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62224 - "GET /api/dashboard/deals HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62796 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60353 - "GET /api/products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51897 - "OPTIONS /api/track/quick HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51897 - "POST /api/track/quick HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:64716 - "POST /api/track/quick HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:58580 - "POST /api/track/quick HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:58580 - "POST /api/track/quick HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:49832 - "POST /api/track/quick HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:51102 - "GET /api/dashboard/deals HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61521 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49990 - "GET /api/products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49990 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55026 - "POST /api/track/quick HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:57534 - "GET /api/products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54412 - "POST /api/track/quick HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:64382 - "POST /api/track/quick HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:62855 - "GET /api/products/d76b237f-cdbd-4e61-8aea-d8e761a22c02 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51290 - "GET /api/products/d76b237f-cdbd-4e61-8aea-d8e761a22c02/buy-advice HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51290 - "GET /api/products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51290 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51290 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51290 - "GET /api/products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51290 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51290 - "GET /api/ai/coach/history/coach-aofhv5y4bl HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60865 - "GET /api/stores HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51290 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51290 - "GET /api/ai/coach/history/coach-aofhv5y4bl HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51290 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51290 - "GET /api/stores HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51290 - "GET /api/listings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65127 - "GET /api/check/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65127 - "GET /api/products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65127 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65127 - "GET /api/dashboard/deals HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65127 - "GET /api/products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58603 - "OPTIONS /api/track/quick HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58603 - "POST /api/track/quick HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:58603 - "POST /api/track/quick HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:63927 - "POST /api/track/quick HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:50341 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50341 - "GET /api/ai/coach/history/coach-aofhv5y4bl HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49183 - "GET /api/stores HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50341 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50341 - "GET /api/listings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49183 - "GET /api/check/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49183 - "GET /api/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49183 - "GET /api/listings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50341 - "GET /api/check/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49183 - "GET /api/stores HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50341 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50341 - "POST /api/telegram/test HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58194 - "POST /api/telegram/test HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50654 - "POST /api/telegram/test HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50654 - "POST /api/telegram/test HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54489 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54489 - "GET /api/products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54489 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54489 - "GET /api/ai/coach/history/coach-aofhv5y4bl HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54489 - "GET /api/products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64795 - "GET /api/dashboard/deals HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54489 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64795 - "GET /api/dashboard/deals HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54489 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51959 - "GET /api/products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51959 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51959 - "GET /api/ai/coach/history/coach-aofhv5y4bl HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55246 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55246 - "GET /api/dashboard/deals HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59529 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59529 - "GET /api/dashboard/deals HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55338 - "GET /api/ai/coach/history/coach-30xekfzo4ve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55338 - "GET /api/products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52669 - "OPTIONS /api/search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52669 - "POST /api/search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59156 - "POST /api/search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55350 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55350 - "GET /api/products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58586 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58586 - "GET /api/products HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53172 - "POST /api/track/quick HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:65398 - "GET /api/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53172 - "POST /api/track/quick HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:53172 - "OPTIONS /api/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53172 - "PUT /api/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60895 - "GET /api/profile HTTP/1.1" 200 OK

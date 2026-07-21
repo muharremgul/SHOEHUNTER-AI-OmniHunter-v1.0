@@ -1,0 +1,31 @@
+[project]
+name = "shoehunter-ai"
+version = "0.6.0"
+description = "Secure local product discovery, stock and price monitoring application."
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+pythonpath = ["backend", "."]
+markers = [
+    "live: opt-in contract tests that access real store pages",
+]
+
+[tool.black]
+line-length = 120
+target-version = ["py311"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+check_untyped_defs = true
+exclude = "backend/(analyze_|check_|extract_|fetch_|find_|fix_|take_screenshot|test_).*\\.py"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]

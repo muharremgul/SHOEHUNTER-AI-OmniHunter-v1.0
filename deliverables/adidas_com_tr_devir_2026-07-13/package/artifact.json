@@ -1,0 +1,290 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "adidas.com.tr Entegrasyonu: Teknik Devir ve Olay Raporu",
+    "description": "ShoeHunter AI icindeki Adidas Turkiye arama, kesif, urun okuma, fiyat, stok ve beden akislarinin kanita dayali teknik durumu.",
+    "generatedAt": "2026-07-13T11:00:00+03:00",
+    "cards": [],
+    "charts": [
+      {
+        "id": "adidas_stage_chart",
+        "title": "Adidas akislarinda bulunan ve okunabilen veri adetleri",
+        "subtitle": "13 Temmuz 2026 anlik gozlemi; URL kesfi fiyat, stok veya beden basarisi anlamina gelmez.",
+        "type": "bar",
+        "dataset": "stage_counts",
+        "sourceId": "report_datasets",
+        "encodings": {
+          "x": {"field": "stage_label", "type": "nominal", "label": "Akis ve veri asamasi"},
+          "y": {"field": "count", "type": "quantitative", "label": "Kayit adedi"}
+        }
+      }
+    ],
+    "tables": [
+      {
+        "id": "stage_counts_table",
+        "title": "Adidas akislarinda bulunan ve okunabilen veri adetleri",
+        "subtitle": "13 Temmuz 2026 anlik gozlemi; URL kesfi fiyat, stok veya beden basarisi anlamina gelmez.",
+        "dataset": "stage_counts",
+        "sourceId": "report_datasets",
+        "defaultSort": {"field": "order", "direction": "asc"},
+        "columns": [
+          {"field": "order", "label": "No", "type": "number"},
+          {"field": "stage_label", "label": "Akis ve veri asamasi", "type": "text"},
+          {"field": "count", "label": "Kayit adedi", "type": "number"}
+        ]
+      },
+      {
+        "id": "search_methods_table",
+        "title": "Sistemdeki Adidas arama ve kontrol turleri",
+        "subtitle": "Her akis icin mekanizma, gercek sonuc ve guven duzeyi.",
+        "dataset": "search_methods",
+        "sourceId": "report_datasets",
+        "defaultSort": {"field": "order", "direction": "asc"},
+        "columns": [
+          {"field": "order", "label": "No", "type": "number"},
+          {"field": "method", "label": "Arama/kontrol", "type": "text"},
+          {"field": "mechanism", "label": "Mekanizma", "type": "text"},
+          {"field": "actual_result", "label": "Adidas sonucu", "type": "text"},
+          {"field": "reliability", "label": "Guven", "type": "text"}
+        ]
+      },
+      {
+        "id": "ai_results_table",
+        "title": "Izole AI Arama testi: bulunan ilk alti Adidas URL'si",
+        "subtitle": "Dogrudan arama HTTP 403 verdi; tum satirlar sitemap yedeginden geldi.",
+        "dataset": "ai_results",
+        "sourceId": "report_datasets",
+        "defaultSort": {"field": "rank", "direction": "asc"},
+        "columns": [
+          {"field": "rank", "label": "Sira", "type": "number"},
+          {"field": "code", "label": "Urun kodu", "type": "text"},
+          {"field": "title", "label": "Baslik", "type": "text"},
+          {"field": "match_score", "label": "Eslesme puani", "type": "number"},
+          {"field": "source", "label": "Kaynak", "type": "text"},
+          {"field": "detail_data", "label": "Fiyat/stok/beden", "type": "text"}
+        ]
+      },
+      {
+        "id": "code_map_table",
+        "title": "Paketteki kod haritasi",
+        "subtitle": "Adidas akisinda dogrudan veya dolayli rol alan ana bilesenler.",
+        "dataset": "code_map",
+        "sourceId": "report_datasets",
+        "defaultSort": {"field": "order", "direction": "asc"},
+        "columns": [
+          {"field": "order", "label": "No", "type": "number"},
+          {"field": "component", "label": "Bilesen", "type": "text"},
+          {"field": "role", "label": "Adidas akisindaki rol", "type": "text"},
+          {"field": "path", "label": "Paket yolu", "type": "text"}
+        ]
+      }
+    ],
+    "sources": [
+      {"id": "saved_html", "label": "Kullanicinin verdigi kaydedilmis sayfa", "path": "evidence/adidas.html"},
+      {
+        "id": "runtime_observations",
+        "label": "ShoeHunter calisma zamani gozlemleri",
+        "path": "evidence/runtime_observations.json",
+        "query": {
+          "engine": "sqlite",
+          "language": "sql",
+          "id": "report-stage-counts-v1",
+          "description": "Incelenmis calisma zamani gozlemlerinden rapor grafigi ve denetim tablosu icin asama adetlerini yeniden uretir.",
+          "executed_at": "2026-07-13T11:05:00+03:00",
+          "sql": "WITH observations(order_no, stage_label, count) AS (VALUES (1, 'AI Arama - bulunan URL', 6), (2, 'AI Arama - canli fiyat', 0), (3, 'AI Arama - canli stok', 0), (4, 'AI Arama - beden verisi', 0), (5, 'Radar - bulunan aday URL', 20), (6, 'Radar - canli fiyat', 0), (7, 'Radar - canli stok', 0), (8, 'Radar - beden verisi', 0), (9, 'Bagli Adidas kaydi - URL', 13), (10, 'Bagli Adidas kaydi - canli fiyat', 0), (11, 'Bagli Adidas kaydi - canli stok', 0), (12, 'Bagli Adidas kaydi - beden verisi', 0)) SELECT order_no AS `order`, stage_label, count FROM observations ORDER BY order_no;"
+        }
+      },
+      {"id": "live_ai_test", "label": "Izole Adidas AI Arama testi", "path": "evidence/live_isolated_ai_search_2026-07-13.json"},
+      {"id": "current_code", "label": "Guncel Adidas arama kodlari", "path": "code/current/backend/stores/adidas.py"},
+      {"id": "parser_tests", "label": "Adidas ayrisitirici testleri", "path": "code/current/backend/tests/test_store_engine_parsers.py"},
+      {"id": "history_code", "label": "v1.1 tarihsel Adidas kodu", "path": "code/history/v1.1/backend/stores/adidas.py"}
+      ,{
+        "id": "report_datasets",
+        "label": "Raporun incelenmis satir verileri",
+        "path": "evidence/report_datasets.ndjson",
+        "query": {
+          "engine": "duckdb",
+          "language": "sql",
+          "id": "adidas-report-datasets-v1",
+          "description": "Rapor tablolari ve grafiginde kullanilan incelenmis satirlari okur; her blok kendi dataset alanina gore filtrelenir.",
+          "executed_at": "2026-07-13T11:10:00+03:00",
+          "sql": "SELECT * FROM read_json_auto('evidence/report_datasets.ndjson', format='newline_delimited');"
+        }
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# adidas.com.tr Entegrasyonu: Teknik Devir ve Olay Raporu"
+      },
+      {
+        "id": "technical_summary",
+        "type": "markdown",
+        "body": "## Teknik Ozet\n\n**Ana sonuc:** ShoeHunter AI'nin Adidas entegrasyonu urun URL'lerini ozellikle sitemap uzerinden bulabiliyor ve urun ailesiyle eslestirebiliyor; fakat adidas.com.tr'den canli fiyat, stok ve beden bilgisini guvenilir bicimde okuyamiyor. Bu nedenle entegrasyon **kesif acisindan kismen calisiyor**, **canli urun zenginlestirmesi acisindan calismiyor** olarak degerlendirilmelidir.\n\n- Verilen `adidas.html`, adidas.com.tr'nin ham urun HTML'si degil, ShoeHunter AI'nin kaydedilmis yerel urun detay ekranidir.\n- Bu ekranda 13 Adidas Turkiye baglantisinin 11'i `blocked`, 2'si `error`; canli Adidas fiyat/stok/beden basarisi 0'dir.\n- 13 Temmuz 2026'daki izole AI Arama testinde dogrudan Adidas aramasi `HTTP 403` vermis, sitemap yedegi 6 URL bulmus, fakat fiyat/stok/beden yine 0 kalmistir.\n- Radar 20 sitemap adayi bulmustur; bu basari da URL kesfidir, urun ayrintisi basarisi degildir.\n- Parser bir `ProductGroup` JSON-LD belgesi kendisine ulasirsa fiyat ve bedenleri okuyabilmektedir; asil darbogaz, gecerli sayfa icerigine tutarli erisimdir."
+      },
+      {
+        "id": "scope_definitions",
+        "type": "markdown",
+        "body": "## Kapsam, Zaman ve Tanimlar\n\nRapor; mevcut calisma agacini, Git'teki ilk commit ve v1.1 surumlerini, verilen kayitli sayfayi, ShoeHunter veritabani gozlemlerini, testleri ve 13 Temmuz 2026'da yapilan izole Adidas AI Arama kontrolunu kapsar.\n\n- **Kesif:** Bir Adidas urun URL'si veya aday basligi bulmak.\n- **Zenginlestirme:** Bulunan URL'den canli fiyat, eski fiyat, stok, beden, gorsel ve varyant okumak.\n- **Basarili canli okuma:** Kaynak sayfadan dogrulanmis fiyat ve/veya stok/beden gelmesi. Sadece URL bulunmasi bu tanima girmez.\n- **Fallback/yedek:** Dogrudan arama basarisiz oldugunda sitemap veya varsa Brave aramasindan URL bulmak.\n- **Incelenen urun:** `adidas adizero evo sl`; hedef fiyat 5.500 TL; istenen bedenler 43, 43 1/3 ve 44.\n\nBu ayrim kritiktir: mevcut toplam durum alaninin `ok` olmasi bazen Adidas sayfasinin okundugunu degil, yedek kaynagin URL urettigini ifade eder."
+      },
+      {
+        "id": "saved_html_finding",
+        "type": "markdown",
+        "sourceId": "saved_html",
+        "body": "## Verilen `adidas.html` Dosyasi Ne Gosteriyor?\n\nDosya 248.352 bayttir ve SHA-256 degeri `47CE322224672B21597A67F5328DBE74A7F05277D562CD478D283F7BB6616376`'dir. Belge basligi `ShoeHunter AI`'dir; Adidas `ProductGroup`/`Product` JSON-LD'si ve `__NEXT_DATA__` verisi yoktur. Tek uygulama betigi yerel `adidas_files/bundle.js.indir` dosyasina isaret eder.\n\nBu nedenle dosya Adidas parser'ina verildiginde yalniz `ShoeHunter AI` basligi gorulur; model, fiyat, stok, beden, gorsel ve varyant cikmaz. Dosya yine de degerlidir: sistemimizin o anda 45 magaza baglantisini nasil gosterdigini ve Adidas satirlarindaki hata dagilimini kanitlar. Fakat Adidas'in gercek DOM veya bot korumasi yanitini analiz etmek icin ham kaynak degildir."
+      },
+      {
+        "id": "search_architecture",
+        "type": "markdown",
+        "body": "## Sistemdeki Arama Mimarisi\n\nAdidas entegrasyonu tek bir scraper'dan ibaret degildir. Akislar birbirine bagli birkac katmandan olusur:\n\n1. Kullanici sorgusu veya urun URL'si alinir; AI Arama'da sorgu istege bagli olarak LLM ile normalize edilir.\n2. Adidas motoru dinamik arama sayfasini Playwright tabanli paylasilan tarayici havuzuyla acmaya calisir.\n3. Sonuc kartlari standart secicilerden, genel JSON-LD'den ve varsa `__NEXT_DATA__` icindeki gomulu urunlerden ayrilir.\n4. Dogrudan arama bos veya hataliysa robots/sitemap ve varsa Brave kaynagi ile URL kesfi yapilir.\n5. Bulunan ilk adaylar urun detay sayfasindan fiyat/stok/beden almak icin yeniden acilir.\n6. Radar, urun kimligi puanlamasiyla adaylari otomatik, inceleme veya reddedilen sinifina ayirir.\n7. Magaza sagligi ve devre kesici, tekrarlanan basarisizliklarda yuklenmeyi sinirlar; kuyruk sistemi uzun islemleri kalici is olarak calistirir.\n\nBu tasarim cok katmanlidir ve mantiklidir; ancak Adidas'ta 4. adim URL bulsa da 5. adim canli veriyi tamamlayamamaktadir."
+      },
+      {
+        "id": "search_methods_intro",
+        "type": "markdown",
+        "body": "## Uyguladigimiz Arama ve Kontrol Turleri\n\nAsagidaki tablo, sistemde gercekten bulunan Adidas yollarini ve Adizero Evo SL icin gozlenen sonucu ayirir. En guvenilir sonuc, gecmis fiyat veya manuel fiyat degil, ayni anda canli urun sayfasindan dogrulanmis fiyat ile beden stogudur; bu seviye Adidas'ta elde edilemedi."
+      },
+      {"id": "search_methods", "type": "table", "tableId": "search_methods_table"},
+      {
+        "id": "quantitative_finding",
+        "type": "markdown",
+        "sourceId": "runtime_observations",
+        "body": "## URL Kesfi Var, Canli Ticari Veri Yok\n\nKayitli urun ekraninda 13 Adidas URL'si; odakli Radar calismasinda 20 sitemap adayi; izole AI Arama testinde 6 sitemap sonucu bulunmustur. Buna karsilik bu uc akis icin de canli fiyat, stok ve beden sayisi 0'dir. Grafik, kesif sayisinin veri kalitesiyle karistirilmamasi gerektigini gosterir.\n\n**Etkisi:** Kullanici Adidas urununu sistemde gorebilir, fakat fiyat karsilastirmasi, hedef fiyat alarmi veya beden stogu karari Adidas kaynagi icin dogrulanmis kabul edilmemelidir."
+      },
+      {"id": "stage_chart", "type": "chart", "chartId": "adidas_stage_chart"},
+      {"id": "stage_counts", "type": "table", "tableId": "stage_counts_table"},
+      {
+        "id": "live_test_finding",
+        "type": "markdown",
+        "sourceId": "live_ai_test",
+        "body": "## 13 Temmuz 2026 Izole AI Arama Sonucu\n\nYalniz Adidas motoru acik ve AI kredi kullanimi kapali olarak `adidas adizero evo sl` sorgusu calistirildi. Islem 9,48 saniye surdu. Dogrudan kaynak `HTTP 403` verdi; katmanli yedek 6 URL dondurdu ve toplam durum `ok` oldu. Alti sonucun tamami sitemap kaynakliydi; fiyat, stok, beden ve ayrinti zenginlestirmesi yoktu.\n\nHQ5000, JH6206, JH6208 ve JP7147 yuksek eslesme puaniyla makul adaylardi. Buna karsilik `Adizero Adios Pro Evo 1` puan 92 ile yanlis aile adayi, `Disney SL72` puan 60 ile belirgin yanlis pozitifti. Bu, model kodu bulunmadiginda yalniz baslik benzerliginin otomatik ekleme icin fazla iyimser olabilecegini gosterir."
+      },
+      {"id": "ai_results", "type": "table", "tableId": "ai_results_table"},
+      {
+        "id": "errors",
+        "type": "markdown",
+        "body": "## Karsilasilan Hatalar ve Adidas'in Cikardigi Zorluklar\n\n### 1. HTTP 403 ve bot/hiz siniri sinyalleri\nDogrudan arama ve urun sayfasi isteklerinde Adidas sunucusu otomatik erisimi reddetmektedir. Kayitli 13 satirin 7'sinde acik `HTTP 403`, 4'unde bot korumasi veya hiz siniri siniflandirmasi vardir. Bu, parser calismadan onceki erisim katmaninda olusan temel sorundur.\n\n### 2. Dinamik istemci tarafli icerik\nArama kartlari ve urun varyantlari JavaScript sonrasinda olusabildigi icin yalniz HTTP HTML'si yeterli olmayabilir. Bu nedenle Playwright tarayicisi, kart secicileri ve `__NEXT_DATA__` taramasi eklendi; ancak 403 tarayici yolunda da ayrinti verisine erisimi engelleyebilmektedir.\n\n### 3. Yerel `[WinError 5] Erisim engellendi`\nIki satirdaki bu hata Adidas'in HTTP cevabi degildir. Windows'ta tarayici surecinin baslatilmasi, calistirilabilir dosya yolu, izinler veya servis hesabi tarafinda yerel calisma zamani sorunudur. Adidas engeli ile ayni kategoriye konmamalidir.\n\n### 4. Fallback'in basariyi maskelemesi\nSitemap URL urettiginde toplu durum `ok` olabilir; ayni sonuc nesnesinde dogrudan `HTTP 403` hatasi kalir. Kullanici veya izleme sistemi yalniz `status` alanina bakarsa entegrasyonu tamamen calisiyor sanabilir.\n\n### 5. Sitemap'in veri siniri\nSitemap tipik olarak URL ve URL'den turetilen baslik/model ipucu verir; canli fiyat, stok, beden ve kampanya vermez. Bu nedenle sitemap tek basina alis karari icin yeterli degildir.\n\n### 6. Parser semasi degisikligi riski\nMevcut Adidas ayrisitiricisi kokte sozluk bicimindeki `ProductGroup` JSON-LD'yi iyi isler. Adidas veriyi liste, `@graph`, ic ice obje veya yalniz `Product` olarak sunarsa kayit kacabilir. Bu erisim sorunu cozuldugunde ikinci risk olarak kalir."
+      },
+      {
+        "id": "done_not_done",
+        "type": "markdown",
+        "body": "## Neleri Yaptik, Neleri Yapamadik?\n\n**Yapilanlar**\n\n- Adidas icin ayri motor, alan adi dogrulamasi, urun URL deseni ve arama URL'si tanimlandi.\n- Dinamik sayfalar icin Playwright tabanli ortak tarayici havuzu kuruldu; magaza basina eszamanlilik 1 ile sinirlandi.\n- Arama kartlari, genel JSON-LD ve `__NEXT_DATA__` urunleri icin ayrisitirma eklendi.\n- `ProductGroup` varyantlarindan guncel/eski fiyat, beden, stok ve varyant URL'si cikarma mantigi yazildi.\n- HTTP tekrar deneme, geri cekilme, boyut siniri, ETag/Last-Modified onbellegi, SSRF/alan adi denetimi ve bot belirteci siniflandirmasi eklendi.\n- Sitemap/robots ve istege bagli Brave kesfi, urun kimligi puanlama, Radar aday yonetimi, devre kesici ve is kuyrugu eklendi.\n- Birim testinde gecerli `ProductGroup` fixture'i ile 6.799 TL guncel, 7.999 TL eski fiyat ve stoklu/stoksuz iki beden dogru ayrildi.\n- Gecmiste Playwright Stealth ve `curl_cffi`/tarayici taklidi yaklasimlari denendi; mevcut uygulama bunlara dayanmiyor.\n\n**Yapilamayanlar veya guvenilir olmayanlar**\n\n- adidas.com.tr'den surekli ve tekrarlanabilir canli fiyat okuma.\n- Canli beden bazli stok ve renk/varyant dogrulamasi.\n- Arama sayfasindan kart fiyatlarini 403 olmadan kararlı alma.\n- Sitemap adaylarini yanlis pozitif olmadan tam urun ailesine ayirma.\n- Fallback `ok` durumu ile dogrudan kaynak basarisini arayuzde tam ayirma.\n- Verilen `adidas.html` uzerinden Adidas DOM'unu inceleme; dosya Adidas kaynagi degildir."
+      },
+      {
+        "id": "code_architecture",
+        "type": "markdown",
+        "body": "## Kod Mimarisi ve Devralma Haritasi\n\nPaket yalnız `adidas.py` dosyasini degil, bu motorun gercekte calisabilmesi icin kullandigi ortak katmanlari da icerir. Guncel kaynaklarin yanina v1.1 ve ilk committe mevcut olan ilgili dosyalar eklenmistir; boylece baska sistem degisimleri karsilastirabilir.\n\nIki teshis dosyasina dikkat edilmelidir: `test_adidas_pw.py` adi Playwright izlenimi verse de guncel halinde `engine.fetch()` cagirir ve tarayici yolunu dogrudan test etmeyebilir. `test_curl_cffi.py` adi da tarihsel denemeden kalmistir; guncel icerigin standart `httpx` kullanip kullanmadigi dosyadan tekrar dogrulanmalidir. Bu adlar test sonucu yorumlanirken yanlis guven yaratmamalidir."
+      },
+      {"id": "code_map", "type": "table", "tableId": "code_map_table"},
+      {
+        "id": "limitations",
+        "type": "markdown",
+        "body": "## Sinirlamalar, Belirsizlik ve Saglamlik\n\n- Bu inceleme 13 Temmuz 2026 anlik durumudur. Adidas'in koruma kurallari, sayfa semasi ve erisim politikasi zamanla degisebilir.\n- Gercek ham Adidas 403/challenge HTML'si bu pakette yoktur; kullanicinin verdigi dosya yerel ShoeHunter ekranidir.\n- Veritabani gozlemleri rapora ozetlenmistir; gizlilik ve guvenlik nedeniyle veritabani kopyasi pakete alinmamistir.\n- Izole test AI normalizasyonunu kapatmistir; amac LLM kalitesini degil Adidas motoru ve fallback davranisini olcmektir.\n- Birim testi parser'in kontrollu fixture ile calistigini kanitlar; gercek siteden icerik alinabildigini kanitlamaz.\n- `store_health.total_success` URL kesfi veya islemin tamamlanmasi gibi daha zayif basarilari icerebilir; fiyat ve stok basarisi ayri alanlardan okunmalidir.\n- Manuel fiyat, kaynaktan canli dogrulanmis fiyat sayilmamalidir ve stok kaniti degildir.\n\nBu sinirlamalara ragmen 13 baglantinin tamaminda canli veri basarisizligi, izole testteki 403 ve Radar'in yalniz sitemap sonucu vermesi ayni yone isaret etmektedir; ana sonuc saglamdir."
+      },
+      {
+        "id": "recommendations",
+        "type": "markdown",
+        "body": "## Onerilen Sonraki Adimlar\n\n1. **Resmi ve kullanim kosullarina uygun veri kanali arayin.** Adidas/affiliate urun beslemesi, resmi API, is ortakligi feed'i veya izinli katalog erisimi; fiyat, stok ve beden icin en dayanikli cozumdur.\n2. **Durum modelini ikiye ayirin.** `discovery_status` ve `detail_status` ayri olmali; sitemap basarisi dogrudan 403'u gizlememelidir.\n3. **Windows tarayici hatasini ayri giderin.** `[WinError 5]` icin Playwright calistirilabilir dosyasi, izinler, servis hesabi ve onbellek dizini denetlenmeli; bu hata Adidas engeli diye raporlanmamalidir.\n4. **Hukuka ve site kosullarina uygun bir oturumda ham kanit toplayin.** Gercek arama ve urun HTML'si, son URL, HTTP durumu ve challenge ekrani gizli bilgiler temizlenerek fixture yapilmalidir.\n5. **Parser kapsamini genisletin.** `ProductGroup` icin liste/`@graph`/ic ice yapilar ve kontrollu `Product` yedegi eklenmeli; arama karti ile detay semasi icin sozlesme testleri yazilmalidir.\n6. **Sitemap adaylarini daha ihtiyatli ekleyin.** Model kodu yoksa urun ailesi tokenlari ve cinsiyet/varyant sinyalleri zorunlu tutulmali; yuksek baslik puani tek basina otomatik baglama yetmemelidir.\n7. **Manuel veriyi acik etiketleyin.** Manuel fiyat kullanici girdisi olarak gorunmeli, canli fiyat veya stok basarisi sayacina girmemelidir.\n8. **Teshis testlerini duzeltin.** Dosya adlari ve gercek cagrilan katman ayni olmali; HTTP, Playwright, sitemap ve ayrinti zenginlestirme testleri ayri raporlanmalidir.\n9. **Bot korumasini asmaya calisan gizli veya saldirgan yontemlerden kacinin.** Hiz siniri, robots, devre kesici ve kullanim kosullari korunmali; oturum/cookie aktarimi ancak acik yetki ve guvenli saklama ile yapilmalidir."
+      },
+      {
+        "id": "further_questions",
+        "type": "markdown",
+        "body": "## Devralacak Sistem Icin Acik Sorular\n\n- Adidas Turkiye urun/affiliate feed'i veya resmi ortaklik kanali saglanabilir mi?\n- 403 cevabinin ham, gizli bilgileri temizlenmis HTML'i ve response header'lari alinabilir mi?\n- Ayni cihazda elle acilan tarayici ile Playwright tarayicisinin bolge, IP, cookie ve challenge davranisi nasil farklaniyor?\n- Fiyat ve beden icin kabul edilebilir tazelik suresi nedir; anlik mi, saatlik mi, gunluk mu?\n- Sitemap'ten bulunan ama canli okunamayan urunler arayuzde gizlenmeli mi, yoksa `dogrulanamadi` etiketiyle mi tutulmali?\n- Urun kodu olmayan sorgularda otomatik baglama esigi ne kadar muhafazakar olmali?\n\nBu sorular cevaplanmadan daha fazla secici eklemek, erisim sorununu parser sorunuymus gibi ele alma riski tasir."
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-07-13T11:00:00+03:00",
+    "status": "ready",
+    "datasets": {
+      "stage_counts": [
+        {"order": 1, "stage_label": "AI Arama - bulunan URL", "count": 6},
+        {"order": 2, "stage_label": "AI Arama - canli fiyat", "count": 0},
+        {"order": 3, "stage_label": "AI Arama - canli stok", "count": 0},
+        {"order": 4, "stage_label": "AI Arama - beden verisi", "count": 0},
+        {"order": 5, "stage_label": "Radar - bulunan aday URL", "count": 20},
+        {"order": 6, "stage_label": "Radar - canli fiyat", "count": 0},
+        {"order": 7, "stage_label": "Radar - canli stok", "count": 0},
+        {"order": 8, "stage_label": "Radar - beden verisi", "count": 0},
+        {"order": 9, "stage_label": "Bagli Adidas kaydi - URL", "count": 13},
+        {"order": 10, "stage_label": "Bagli Adidas kaydi - canli fiyat", "count": 0},
+        {"order": 11, "stage_label": "Bagli Adidas kaydi - canli stok", "count": 0},
+        {"order": 12, "stage_label": "Bagli Adidas kaydi - beden verisi", "count": 0}
+      ],
+      "search_methods": [
+        {"order": 1, "method": "Manuel urun linki / hizli takip", "mechanism": "URL dogrulama, tarayici ile urun detayi, ProductGroup parser", "actual_result": "13 Adidas baglantisinin 11'i blocked, 2'si error; canli fiyat/stok/beden yok", "reliability": "Basarisiz"},
+        {"order": 2, "method": "Urun listesi yenileme / tum linkleri tara", "mechanism": "Kayitli URL'leri yeniden acip fiyat gecmisi, stok ve alarm guncelleme", "actual_result": "Ayni 403/bot korumasi ve yerel WinError 5 siniflari tekrarlandi", "reliability": "Basarisiz"},
+        {"order": 3, "method": "AI Arama (sifir link)", "mechanism": "Sorgu normalizasyonu, Playwright arama, kart/Next parser, sitemap/Brave fallback, ayrinti zenginlestirme", "actual_result": "Izole test: 6 sitemap URL; dogrudan HTTP 403; 0 fiyat, 0 stok, 0 beden", "reliability": "URL kesfi kismi"},
+        {"order": 4, "method": "Urun Radar", "mechanism": "Magaza aramasi, fallback, urun kimligi puani, auto/review/rejected adaylar", "actual_result": "20 sitemap adayi; 14 auto, 4 review, 2 rejected; 0 yeni baglanti; fiyatlar null", "reliability": "Aday kesfi kismi"},
+        {"order": 5, "method": "Sitemap/Brave katmanli kesif", "mechanism": "robots ve sitemap URL'lerini sorgu tokenlariyla eslestirme; opsiyonel Brave", "actual_result": "URL ve baslik/model ipucu buluyor; canli ticari veri uretmiyor", "reliability": "Kesif icin orta"},
+        {"order": 6, "method": "Manuel fiyat", "mechanism": "Engelli kayda kullanici fiyat girdisi", "actual_result": "JH6206 satirinda 10.199 TL gorunebilir; canli stok ve beden kaniti degil", "reliability": "Kullanici girdisi"},
+        {"order": 7, "method": "Offline parser / birim testi", "mechanism": "Kontrollu ProductGroup JSON-LD fixture'i", "actual_result": "6.799 TL guncel, 7.999 TL eski fiyat ve iki beden dogru ayrildi", "reliability": "Parser mantigi icin yuksek"},
+        {"order": 8, "method": "Magaza sagligi / devre kesici", "mechanism": "Basari, hata, blocked ve ornek fiyat-stok kalitesini izleme", "actual_result": "13 kontrol, 4 genel basari, 9 hata, 6 blocked; fiyat ve stok ornegi basarisiz", "reliability": "Operasyonel koruma"}
+      ],
+      "ai_results": [
+        {"rank": 1, "code": "HQ5000", "title": "Adizero Evo SL", "match_score": 100, "source": "sitemap", "detail_data": "Yok"},
+        {"rank": 2, "code": "IH5564", "title": "Adizero Adios Pro Evo 1", "match_score": 92, "source": "sitemap", "detail_data": "Yok; yanlis aile riski"},
+        {"rank": 3, "code": "IH9360", "title": "Disney SL72", "match_score": 60, "source": "sitemap", "detail_data": "Yok; yanlis pozitif"},
+        {"rank": 4, "code": "JH6206", "title": "Adizero Evo SL", "match_score": 100, "source": "sitemap", "detail_data": "Yok"},
+        {"rank": 5, "code": "JH6208", "title": "Adizero Evo SL", "match_score": 100, "source": "sitemap", "detail_data": "Yok"},
+        {"rank": 6, "code": "JP7147", "title": "Adizero Evo SL", "match_score": 100, "source": "sitemap", "detail_data": "Yok"}
+      ],
+      "code_map": [
+        {"order": 1, "component": "Adidas motoru", "role": "Arama URL'si, kart/Next parser, ProductGroup fiyat-stok-beden parser'i", "path": "code/current/backend/stores/adidas.py"},
+        {"order": 2, "component": "Genel magaza motoru", "role": "Guvenli HTTP, tekrar deneme, onbellek, bot sinifi, urun verisi", "path": "code/current/backend/engines.py"},
+        {"order": 3, "component": "Tarayici aramasi", "role": "JS gerektiren magaza arama sayfalarini toplu calistirma", "path": "code/current/backend/browser_search.py"},
+        {"order": 4, "component": "Playwright havuzu", "role": "Paylasilan Chromium, magaza baglami, limitler ve guvenlik", "path": "code/current/backend/browser_runtime.py"},
+        {"order": 5, "component": "Kesif kaynaklari", "role": "robots, sitemap ve opsiyonel Brave URL kesfi", "path": "code/current/backend/discovery_sources.py"},
+        {"order": 6, "component": "Radar servisi", "role": "Aday kesfi, siniflandirma, baglama ve periyodik calisma", "path": "code/current/backend/discovery_service.py"},
+        {"order": 7, "component": "Urun kimligi", "role": "Marka/model/token benzerligi ve eslesme karari", "path": "code/current/backend/product_identity.py"},
+        {"order": 8, "component": "API sunucusu", "role": "AI Arama, link ekleme, fallback, enrichment ve liste yenileme", "path": "code/current/backend/server.py"},
+        {"order": 9, "component": "Magaza sagligi", "role": "Hata sayaci, blocked durumu ve devre kesici", "path": "code/current/backend/store_health.py"},
+        {"order": 10, "component": "Is kuyrugu", "role": "Radar ve toplu taramalari kalici is olarak calistirma", "path": "code/current/backend/job_queue.py"},
+        {"order": 11, "component": "AI Arama arayuzu", "role": "Sifir-link arama sonuclarini ve durumlari gosterme", "path": "code/current/frontend/src/pages/AISearch.jsx"},
+        {"order": 12, "component": "Radar arayuzu", "role": "Adaylari ve tekrar tarama islerini yonetme", "path": "code/current/frontend/src/pages/ProductRadar.jsx"},
+        {"order": 13, "component": "Parser ve kesif testleri", "role": "ProductGroup, sitemap basligi, kimlik ve canli sozlesme kontrolleri", "path": "code/current/backend/tests/"}
+      ]
+    },
+    "accessIssues": []
+  },
+  "sources": [
+    {"id": "saved_html", "path": "evidence/adidas.html", "description": "Kullanicinin 13 Temmuz 2026'da sagladigi kaydedilmis ShoeHunter AI urun detay sayfasi."},
+    {
+      "id": "runtime_observations",
+      "path": "evidence/runtime_observations.json",
+      "description": "Kayitli urun, bagli magazalar, Radar calismasi ve magaza sagligi gozlemleri.",
+      "query": {
+        "engine": "sqlite",
+        "language": "sql",
+        "id": "report-stage-counts-v1",
+        "description": "Incelenmis calisma zamani gozlemlerinden rapor grafigi ve denetim tablosu icin asama adetlerini yeniden uretir.",
+        "executed_at": "2026-07-13T11:05:00+03:00",
+        "sql": "WITH observations(order_no, stage_label, count) AS (VALUES (1, 'AI Arama - bulunan URL', 6), (2, 'AI Arama - canli fiyat', 0), (3, 'AI Arama - canli stok', 0), (4, 'AI Arama - beden verisi', 0), (5, 'Radar - bulunan aday URL', 20), (6, 'Radar - canli fiyat', 0), (7, 'Radar - canli stok', 0), (8, 'Radar - beden verisi', 0), (9, 'Bagli Adidas kaydi - URL', 13), (10, 'Bagli Adidas kaydi - canli fiyat', 0), (11, 'Bagli Adidas kaydi - canli stok', 0), (12, 'Bagli Adidas kaydi - beden verisi', 0)) SELECT order_no AS `order`, stage_label, count FROM observations ORDER BY order_no;"
+      }
+    },
+    {"id": "live_ai_test", "path": "evidence/live_isolated_ai_search_2026-07-13.json", "description": "Yalniz Adidas motoruyla yapilan izole, AI kredisiz arama testi."},
+    {"id": "current_code", "path": "code/current/backend/stores/adidas.py", "description": "Guncel Adidas motoru ve paketlenmis ortak arama altyapisi."},
+    {"id": "parser_tests", "path": "code/current/backend/tests/test_store_engine_parsers.py", "description": "Adidas ProductGroup parser'i icin kontrollu test kaniti."},
+    {"id": "history_code", "path": "code/history/v1.1/backend/stores/adidas.py", "description": "Git v1.1 surumundeki Adidas motoru."}
+    ,{
+      "id": "report_datasets",
+      "path": "evidence/report_datasets.ndjson",
+      "description": "Rapor tablolari ve grafiginde kullanilan incelenmis satir verileri.",
+      "query": {
+        "engine": "duckdb",
+        "language": "sql",
+        "id": "adidas-report-datasets-v1",
+        "description": "Rapor tablolari ve grafiginde kullanilan incelenmis satirlari okur; her blok kendi dataset alanina gore filtrelenir.",
+        "executed_at": "2026-07-13T11:10:00+03:00",
+        "sql": "SELECT * FROM read_json_auto('evidence/report_datasets.ndjson', format='newline_delimited');"
+      }
+    }
+  ],
+  "package_info": {
+    "originUrl": "artifact://shoehunter-adidas-technical-handoff-2026-07-13",
+    "controls": {"edit": false, "refresh": false}
+  }
+}

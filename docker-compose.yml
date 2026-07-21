@@ -1,0 +1,139 @@
+name: shoehunter
+
+services:
+  mongo:
+    image: mongo:7.0
+    restart: unless-stopped
+    command: ["mongod", "--bind_ip_all"]
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    env_file: backend/.env
+    environment:
+      MONGO_URL: mongodb://mongo:27017
+      DB_NAME: shoehunter_ai
+      EMBEDDED_SCHEDULER: "false"
+      SECRET_KEY_FILE: /run/shoehunter/shoehunter.key
+      BACKUP_DIR: /backups
+    ports:
+      - "8000:8000"
+    volumes:
+      - secret_data:/run/shoehunter
+      - backup_data:/backups
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    command: ["python", "worker.py"]
+    env_file: backend/.env
+    environment:
+      MONGO_URL: mongodb://mongo:27017
+      DB_NAME: shoehunter_ai
+      EMBEDDED_SCHEDULER: "false"
+      WORKER_QUEUE: default
+      SECRET_KEY_FILE: /run/shoehunter/shoehunter.key
+      BACKUP_DIR: /backups
+    volumes:
+      - secret_data:/run/shoehunter
+      - backup_data:/backups
+    depends_on:
+      api:
+        condition: service_healthy
+
+  browser-worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    command: ["python", "worker.py"]
+    env_file: backend/.env
+    environment:
+      MONGO_URL: mongodb://mongo:27017
+      DB_NAME: shoehunter_ai
+      EMBEDDED_SCHEDULER: "false"
+      WORKER_QUEUE: browser
+      SECRET_KEY_FILE: /run/shoehunter/shoehunter.key
+      BACKUP_DIR: /backups
+    volumes:
+      - secret_data:/run/shoehunter
+      - backup_data:/backups
+    depends_on:
+      api:
+        condition: service_healthy
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    command: ["python", "scheduler_worker.py"]
+    env_file: backend/.env
+    environment:
+      MONGO_URL: mongodb://mongo:27017
+      DB_NAME: shoehunter_ai
+      EMBEDDED_SCHEDULER: "false"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        REACT_APP_BACKEND_URL: ${PUBLIC_BACKEND_URL:-}
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  caddy:
+    image: caddy:2.10-alpine
+    profiles: ["https"]
+    restart: unless-stopped
+    environment:
+      SHOEHUNTER_DOMAIN: ${SHOEHUNTER_DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_healthy
+
+volumes:
+  mongo_data:
+  secret_data:
+  backup_data:
+  caddy_data:
+  caddy_config:

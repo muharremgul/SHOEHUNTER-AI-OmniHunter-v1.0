@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Ayarlar | ShoeHunter AI{% endblock %}
+
+{% block content %}
+
+<h1 class="page-title">Ayarlar</h1>
+<p class="text-muted">Telegram ve otomatik kontrol ayarları. Bot artık kendi kendine kontrol etmeye hazırlanıyor; küçük bir çocuk gibi, ama daha az yapışkan ve daha çok HTTP isteği atan türden.</p>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card stat-card mb-3">
+            <div class="card-header bg-white">
+                <strong>Telegram Ayarları</strong>
+            </div>
+
+            <div class="card-body">
+                <form method="post" action="{{ url_for('settings_telegram_save') }}">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" role="switch" name="enabled" id="telegram_enabled" {% if telegram_settings.enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="telegram_enabled">Telegram bildirimleri aktif</label>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Bot Token</label>
+                        <input type="password" name="bot_token" class="form-control" placeholder="Boş bırakırsan kayıtlı token korunur">
+                        <div class="form-text">Kayıtlı token: {{ masked_token }}</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Chat ID</label>
+                        <input type="text" name="chat_id" class="form-control" value="{{ telegram_settings.chat_id or '' }}" placeholder="Örn: 731990605">
+                    </div>
+
+                    <button class="btn btn-primary">Kaydet</button>
+                </form>
+
+                <hr>
+
+                <form method="post" action="{{ url_for('settings_telegram_test') }}">
+                    <button class="btn btn-success">Telegram Test Mesajı Gönder</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card stat-card">
+            <div class="card-header bg-white">
+                <strong>Otomatik Kontrol</strong>
+            </div>
+
+            <div class="card-body">
+                <form method="post" action="{{ url_for('settings_scheduler_save') }}">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" role="switch" name="enabled" id="scheduler_enabled" {% if scheduler_settings.enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="scheduler_enabled">Otomatik toplu kontrol aktif</label>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Kontrol aralığı</label>
+                        <input type="number" name="interval_minutes" min="1" step="1" class="form-control" value="{{ scheduler_settings.interval_minutes or 60 }}">
+                        <div class="form-text">En düşük 1 dakika. Mağaza sitesini dövmüyoruz, sadece dürtüyoruz.</div>
+                    </div>
+
+                    <button class="btn btn-primary">Otomatik Kontrol Ayarını Kaydet</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card stat-card mb-3">
+            <div class="card-header bg-white">
+                <strong>Scheduler Durumu</strong>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr>
+                        <th>Ayar</th>
+                        <td>{% if scheduler_status.enabled %}Aktif{% else %}Kapalı{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <th>Çalışıyor</th>
+                        <td>{% if scheduler_status.started %}Evet{% else %}Hayır{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <th>Aralık</th>
+                        <td>{{ scheduler_status.interval_minutes }} dakika</td>
+                    </tr>
+                    <tr>
+                        <th>Sonraki çalışma</th>
+                        <td>{{ scheduler_status.next_run_time or "-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Son çalışma</th>
+                        <td>{{ scheduler_status.last_run_at or "-" }}</td>
+                    </tr>
+                </table>
+
+                <p class="text-muted small mb-0">
+                    Ayarı değiştirdikten sonra uygulamayı kapatıp tekrar aç. Evet, yeniden başlatma hâlâ yazılımın evrensel duası.
+                </p>
+            </div>
+        </div>
+
+        <div class="card stat-card">
+            <div class="card-header bg-white">
+                <strong>Notlar</strong>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li>Otomatik kontrol, Toplu Kontrol ile aynı motoru kullanır.</li>
+                    <li>Şimdilik sadece Intersport fiyat kontrol eder.</li>
+                    <li>Fiyat hedefi tutarsa panel uyarısı ve Telegram gönderimi yapılır.</li>
+                    <li>Stok/beden uyarısı hâlâ kapalı. Canavar hâlâ kafeste, iyi de böyle.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
