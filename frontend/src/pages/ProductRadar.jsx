@@ -312,6 +312,8 @@ export default function ProductRadar() {
   const [busy, setBusy] = useState(false);
   const [activeAction, setActiveAction] = useState(null);
   const [detail, setDetail] = useState(null);
+  const [googleShoppingResults, setGoogleShoppingResults] = useState(null);
+  const [isGoogleSearching, setIsGoogleSearching] = useState(false);
   const [storeSelectionInitialized, setStoreSelectionInitialized] = useState(false);
   const [scanBusy, setScanBusy] = useState(false);
   const [scanResult, setScanResult] = useState(null);
@@ -1155,9 +1157,54 @@ export default function ProductRadar() {
             <div>
               <div className="text-xs text-primary uppercase tracking-wider font-mono">Eşleşme İncelemesi</div>
               <h2 className="font-heading font-semibold text-xl mt-1">{detail.watch.raw_query}</h2>
+              <div className="mt-3">
+                <button
+                  type="button"
+                  className="btn-secondary text-xs flex items-center gap-1.5"
+                  onClick={async () => {
+                    setIsGoogleSearching(true);
+                    setGoogleShoppingResults(null);
+                    try {
+                      const response = await api.post("/google-shopping/search", { query: detail.watch.raw_query });
+                      setGoogleShoppingResults(response.data.results || []);
+                    } catch (error) {
+                      toast.error(error.response?.data?.detail || "Google Shopping aranırken hata oluştu.");
+                    } finally {
+                      setIsGoogleSearching(false);
+                    }
+                  }}
+                  disabled={isGoogleSearching}
+                >
+                  {isGoogleSearching ? <CircleNotch size={14} className="animate-spin" /> : <Crosshair size={14} />}
+                  Google Shopping'de Fiyat Araştır (Opsiyonel)
+                </button>
+              </div>
             </div>
-            <button className="h-9 w-9 border border-zinc-800 rounded flex items-center justify-center" onClick={() => setDetail(null)} title="Kapat"><X size={16} /></button>
+            <button className="h-9 w-9 border border-zinc-800 rounded flex items-center justify-center" onClick={() => { setDetail(null); setGoogleShoppingResults(null); }} title="Kapat"><X size={16} /></button>
           </div>
+          {googleShoppingResults && (
+            <section className="rounded border border-emerald-900/30 bg-emerald-900/10 p-4 space-y-3">
+              <div className="text-xs text-emerald-400 font-medium flex items-center gap-2">
+                Google Shopping Sonuçları ({googleShoppingResults.length})
+                <button className="text-zinc-500 hover:text-zinc-300 ml-auto" onClick={() => setGoogleShoppingResults(null)}><X size={14}/></button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {googleShoppingResults.map((res, i) => (
+                  <a key={i} href={res.link} target="_blank" rel="noreferrer" className="card p-3 flex gap-3 hover:border-emerald-500/30 transition-colors">
+                    {res.image_url && <img src={res.image_url} alt="" className="h-16 w-16 object-contain rounded bg-white" />}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-medium line-clamp-2 text-zinc-300">{res.title}</div>
+                      <div className="text-sm font-semibold text-emerald-400 mt-1">{res.price} TL</div>
+                      <div className="text-[10px] text-zinc-500 mt-0.5">{res.store_name}</div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+              {googleShoppingResults.length === 0 && (
+                <div className="text-xs text-zinc-500">Google Shopping'de sonuç bulunamadı veya bot korumasına (CAPTCHA) takıldı.</div>
+              )}
+            </section>
+          )}
           {detailLatestRun && (
             <section className="rounded border border-zinc-800 bg-black/20 p-4 space-y-3" data-testid="radar-run-evidence">
               <div className="flex flex-wrap items-center justify-between gap-2">

@@ -40,7 +40,13 @@ class BrowserPool:
                 self._playwright = await async_playwright().start()
                 self._browser = await self._playwright.chromium.launch(
                     headless=True,
-                    args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+                    args=[
+                        "--no-sandbox",
+                        "--disable-dev-shm-usage",
+                        "--disable-gpu",
+                        "--disable-blink-features=AutomationControlled"
+                    ],
+                    ignore_default_args=["--enable-automation"]
                 )
             except Exception as exc:
                 self._browser = None
@@ -88,6 +94,11 @@ class BrowserPool:
         async with self._global_sem, store_sem:
             context = await self._context(store_slug, user_agent)
             page = await context.new_page()
+            try:
+                from playwright_stealth import stealth_async
+                await stealth_async(page)
+            except ImportError:
+                pass
 
             async def block_heavy(route):
                 if route.request.resource_type in {"media", "font"}:

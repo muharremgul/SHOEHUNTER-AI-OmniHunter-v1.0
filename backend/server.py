@@ -1572,6 +1572,25 @@ async def _enrich_results(store_results, limit=8):
         await asyncio.gather(*[enrich(r) for r in targets])
 
 
+class GoogleShoppingRequest(BaseModel):
+    query: str
+
+@api.post("/google-shopping/search")
+async def google_shopping_search(body: GoogleShoppingRequest):
+    query = body.query.strip()
+    if not query:
+        raise HTTPException(400, "Sorgu boş olamaz")
+    
+    from stores.google_shopping import GoogleShoppingEngine
+    engine = GoogleShoppingEngine()
+    try:
+        results = await engine.search(query)
+        return {"results": results, "success": True}
+    except Exception as e:
+        logger.error("Google Shopping hatası: %s", str(e))
+        return {"results": [], "success": False, "error": str(e)}
+
+
 @api.post("/search")
 async def zero_link_search(body: SearchRequest):
     query = body.query.strip()
