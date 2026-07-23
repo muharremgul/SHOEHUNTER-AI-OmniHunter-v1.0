@@ -24,6 +24,23 @@ test("uses the LAN address instead of a localhost build setting", () => {
   })).toBe("http://192.168.1.34:8000");
 });
 
+test("uses the same HTTPS origin behind a private reverse proxy", () => {
+  expect(resolveBackendUrl({
+    host: "shophunter.example.ts.net",
+    protocol: "https:",
+    configured: "http://localhost:8000",
+  })).toBe("https://shophunter.example.ts.net");
+});
+
+test("ignores a remembered HTTP backend on an HTTPS page", () => {
+  expect(resolveBackendUrl({
+    saved: "http://192.168.1.34:8000",
+    host: "shophunter.example.ts.net",
+    protocol: "https:",
+    configured: "http://localhost:8000",
+  })).toBe("https://shophunter.example.ts.net");
+});
+
 test("honors an explicit production API origin", () => {
   expect(resolveBackendUrl({
     host: "shoehunter.example.com",

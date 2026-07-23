@@ -58,6 +58,22 @@ def test_login_required(client):
     client.cookies.update(saved)
 
 
+def test_https_reverse_proxy_login_sets_secure_cookies(client):
+    saved = dict(client.cookies)
+    client.cookies.clear()
+    response = client.post(
+        "/api/auth/login",
+        json={"username": "admin", "password": "TestYonetici2026"},
+        headers={"X-Forwarded-Proto": "https"},
+    )
+    assert response.status_code == 200
+    cookies = response.headers.get_list("set-cookie")
+    assert len(cookies) == 2
+    assert all("Secure" in value for value in cookies)
+    client.cookies.clear()
+    client.cookies.update(saved)
+
+
 def test_secret_not_returned(client):
     response = client.get("/api/settings")
     assert response.status_code == 200
@@ -69,6 +85,40 @@ def test_secret_not_returned(client):
 def test_csrf_required_for_mutation(client):
     response = client.post("/api/products", json={"name": "CSRF Test Urunu"})
     assert response.status_code == 403
+
+
+def test_mobile_fcm_fid_registration_uses_revocable_device_token(client):
+    device_id = f"android-{uuid.uuid4()}"
+    first_fcm_fid = "a" * 22
+    registration = client.post(
+        "/api/mobile/device/register",
+        json={
+            "device_id": device_id,
+            "platform": "android",
+            "app_version": "0.1.0-test",
+            "fcm_fid": first_fcm_fid,
+        },
+        headers=csrf_headers(client),
+    )
+    assert registration.status_code == 200
+    device_token = registration.json()["device_token"]
+
+    replacement = "b" * 22
+    updated = client.post(
+        "/api/mobile/device/push-registration",
+        json={"installation_id": replacement},
+        headers={"Authorization": f"Bearer {device_token}"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["ok"] is True
+
+    mongo = MongoClient(MONGO_URL)
+    try:
+        row = mongo[TEST_DB_NAME].mobile_devices.find_one({"device_id": device_id})
+        assert row["fcm_fid"] == replacement
+        assert row["fcm_fid_hash"] != replacement
+    finally:
+        mongo.close()
 
 
 def test_scan_label_endpoint_accepts_authenticated_image(client, monkeypatch):

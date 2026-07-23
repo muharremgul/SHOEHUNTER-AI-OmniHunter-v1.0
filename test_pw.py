@@ -1,0 +1,1 @@
+import asyncio; from playwright.async_api import async_playwright; async def main(): print('starting'); pw = await async_playwright().start(); print('pw started'); br = await pw.chromium.launch(headless=True); print('launched'); await br.close(); await pw.stop(); asyncio.run(main())  

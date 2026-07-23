@@ -1295,6 +1295,7 @@ from stores.yalispor import YaliSporEngine
 from stores.adidas import AdidasEngine
 from stores.decathlon import DecathlonEngine
 from stores.sportive import SportiveEngine
+from stores.google_shopping import GoogleShoppingEngine
 
 ENGINES = [
     DecathlonEngine(),
@@ -1324,6 +1325,7 @@ ENGINES = [
     ColumbiaEngine(),
     SalomonEngine(),
     TheNorthFaceEngine(),
+    GoogleShoppingEngine(),
 ]
 
 

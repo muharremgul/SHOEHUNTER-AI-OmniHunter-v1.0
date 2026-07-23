@@ -1,0 +1,12 @@
+{
+  "name": "shoehunter-crawlbase-mcp-runner",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Project-local runner for Crawlbase MCP experiments.",
+  "scripts": {
+    "start": "crawlbase-mcp"
+  },
+  "dependencies": {
+    "@crawlbase/mcp": "1.3.0"
+  }
+}

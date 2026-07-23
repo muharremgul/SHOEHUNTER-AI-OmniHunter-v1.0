@@ -18,6 +18,8 @@ final class OcrSelectionPayload {
             Pattern.compile("\\b[A-Z]{2}\\d{4}\\b"),
             Pattern.compile("\\b(?=[A-Z0-9-]{6,18}\\b)(?=[A-Z0-9-]*[A-Z])(?=[A-Z0-9-]*\\d)[A-Z0-9]+(?:-[A-Z0-9]+)*\\b")
     };
+    private static final Pattern PRICE_PATTERN = Pattern.compile(
+            "(?i)(\\d{1,3}(?:[.\\s]\\d{3})*(?:,\\d{1,2})?|\\d+(?:[.,]\\d{1,2})?)\\s*(?:TL|₺)");
 
     private OcrSelectionPayload() {
     }
@@ -84,6 +86,14 @@ final class OcrSelectionPayload {
         if (folded.contains("decathlon")) return "Decathlon";
         if (folded.contains("kalenji")) return "Kalenji";
         if (folded.contains("kipsta")) return "Kipsta";
+        return null;
+    }
+
+    static String findPriceText(List<String> lines) {
+        for (String line : lines == null ? new ArrayList<String>() : lines) {
+            Matcher matcher = PRICE_PATTERN.matcher(clean(line));
+            if (matcher.find()) return matcher.group().replaceAll("\\s+", " ");
+        }
         return null;
     }
 

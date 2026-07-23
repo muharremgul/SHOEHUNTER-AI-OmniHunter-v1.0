@@ -195,6 +195,17 @@ async def ensure_database(db):
         ),
         (db.auth_sessions, [("token_hash", 1)], {"unique": True, "name": "uq_auth_session"}),
         (db.auth_sessions, [("expires_at", 1)], {"expireAfterSeconds": 0, "name": "ttl_auth_session"}),
+        (db.mobile_devices, [("device_id", 1)], {"unique": True, "name": "uq_mobile_device_id"}),
+        (db.mobile_devices, [("token_hash", 1)], {"unique": True, "name": "uq_mobile_device_auth_token"}),
+        (
+            db.mobile_devices,
+            [("fcm_fid_hash", 1)],
+            {
+                "unique": True,
+                "name": "uq_mobile_device_fcm_fid",
+                "partialFilterExpression": {"fcm_fid_hash": {"$type": "string"}},
+            },
+        ),
         (db.admin_users, [("id", 1)], {"unique": True, "name": "uq_admin_user"}),
         (db.user_profile, [("id", 1)], {"unique": True, "name": "uq_user_profile"}),
     ]

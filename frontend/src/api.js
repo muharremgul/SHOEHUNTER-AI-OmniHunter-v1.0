@@ -1,7 +1,16 @@
 import axios from "axios";
 
 export function resolveBackendUrl({ saved, host, protocol, configured }) {
-  if (saved) return saved;
+  if (saved) {
+    try {
+      const savedUrl = new URL(saved);
+      // An HTTPS page must never call a remembered HTTP backend. Android
+      // WebView and modern browsers block that request as mixed content.
+      if (protocol !== "https:" || savedUrl.protocol === "https:") return saved;
+    } catch (_error) {
+      // Invalid remembered values fall through to the safe page origin.
+    }
+  }
   if (configured) {
     try {
       const configuredHost = new URL(configured).hostname;
@@ -12,8 +21,8 @@ export function resolveBackendUrl({ saved, host, protocol, configured }) {
     }
   }
   if (host) {
-    const backendProtocol = protocol === "https:" ? "https:" : "http:";
-    return `${backendProtocol}//${host}:8000`;
+    if (protocol === "https:") return `https://${host}`;
+    return `http://${host}:8000`;
   }
   return configured || "http://localhost:8000";
 }

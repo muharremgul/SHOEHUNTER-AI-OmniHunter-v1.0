@@ -413,8 +413,13 @@ def test_category_and_blog_urls_are_not_product_links(slug, url):
 
 
 def test_every_registered_store_reports_cart_offer_capability():
-    assert len(ENGINES) == 27
-    assert all(engine.capabilities()["cart_price"] is True for engine in ENGINES)
+    # Google Shopping is an explicit discovery source in addition to the
+    # 27 dedicated retailer engines.
+    assert len(ENGINES) == 28
+    retailer_engines = [engine for engine in ENGINES if engine.slug != "google_shopping"]
+    assert len(retailer_engines) == 27
+    assert all(engine.capabilities()["cart_price"] is True for engine in retailer_engines)
+    assert _engine("google_shopping").capabilities()["cart_price"] is False
 
 
 def test_exact_visible_cart_price_stays_separate_from_shelf_price():

@@ -81,6 +81,7 @@ public final class OcrScanActivity extends ComponentActivity {
     private OcrOverlayView overlayView;
     private TextView statusView;
     private TextView selectionView;
+    private TextView candidateOverlay;
     private LinearLayout lineList;
     private Button freezeButton;
     private Button transferButton;
@@ -139,6 +140,19 @@ public final class OcrScanActivity extends ComponentActivity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.TOP);
         root.addView(statusView, statusParams);
+
+        candidateOverlay = new TextView(this);
+        candidateOverlay.setTextColor(COLOR_BACKGROUND);
+        candidateOverlay.setTextSize(13);
+        candidateOverlay.setPadding(dp(12), dp(7), dp(12), dp(7));
+        candidateOverlay.setBackgroundColor(Color.argb(235, 204, 255, 0));
+        candidateOverlay.setVisibility(View.GONE);
+        candidateOverlay.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+        FrameLayout.LayoutParams candidateParams = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        candidateParams.topMargin = dp(58);
+        root.addView(candidateOverlay, candidateParams);
 
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
@@ -284,6 +298,24 @@ public final class OcrScanActivity extends ComponentActivity {
             latestBlocks.clear();
             latestBlocks.addAll(blocks);
             overlayView.setBlocks(blocks, imageWidth, imageHeight);
+            List<String> liveLines = new ArrayList<>();
+            for (OcrOverlayView.OcrBlock block : blocks) liveLines.add(block.text);
+            String brand = OcrSelectionPayload.findBrand(liveLines);
+            String productCode = OcrSelectionPayload.findProductCode(liveLines);
+            String gtin = OcrSelectionPayload.findGtin(liveLines);
+            String price = OcrSelectionPayload.findPriceText(liveLines);
+            List<String> candidateParts = new ArrayList<>();
+            if (brand != null) candidateParts.add(brand);
+            if (productCode != null) candidateParts.add(productCode);
+            if (gtin != null) candidateParts.add("GTIN " + gtin);
+            if (price != null) candidateParts.add(price);
+            if (candidateParts.isEmpty()) {
+                candidateOverlay.setVisibility(View.GONE);
+            } else {
+                candidateOverlay.setText(getString(R.string.camera_candidate_prefix)
+                        + " · " + String.join(" · ", candidateParts));
+                candidateOverlay.setVisibility(View.VISIBLE);
+            }
             statusView.setText(blocks.isEmpty()
                     ? getString(R.string.ocr_no_text)
                     : getString(R.string.ocr_live_help) + " (" + blocks.size() + ")");

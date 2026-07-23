@@ -326,3 +326,44 @@ async def analyze_search_query(query):
     except Exception:
         pass
     return {"brand": "", "model": "", "normalized_query": query}
+
+async def analyze_ocr_text(raw_text):
+    if not raw_text:
+        return {}
+
+    system_message = (
+        "Sen bir OCR (optik karakter tanıma) metin analizcisisin. Ayakkabı etiketinden okunan "
+        "karmaşık metinlerden ayakkabının marka, model, ürün kodu, fiyat ve beden (numara) bilgilerini çıkaracaksın. "
+        "Metin içinde gürültü veya alakasız yazılar olabilir. SADECE aşağıdaki JSON formatında bir yanıt ver: "
+        '{"brand": "marka", "model": "model", "product_code": "kod", "price": "fiyat", "size": "beden"}. '
+        "Eğer bir veriyi bulamazsan boş string bırak. "
+        "Beden (size) olarak genellikle EUR, US veya UK cinsinden bir sayı (örn. 42, 42.5, 9, vs) bulmaya çalış. "
+        "Fiyat bulursan para birimi ile birlikte yaz (örn. 2500 TL). "
+        "Bütün verileri metin içerisinden çıkar. Ekstra hiçbir açıklama ekleme."
+    )
+
+    if GEMINI_KEY or GROQ_KEY or OPENAI_KEY:
+        try:
+            _, text = await _ai_text(system_message, raw_text)
+            match = re.search(r"\{.*\}", text, re.DOTALL)
+            if match:
+                return json.loads(match.group())
+        except Exception:
+            pass
+        return {}
+
+    # Fallback to emergent
+    try:
+        chat = LlmChat(
+            api_key=LLM_KEY,
+            session_id="ocr-analyze",
+            system_message=system_message,
+        ).with_model("openai", "gpt-5.4")
+        response = await chat.send_message(UserMessage(text=raw_text))
+        text = str(response)
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if match:
+            return json.loads(match.group())
+    except Exception:
+        pass
+    return {}

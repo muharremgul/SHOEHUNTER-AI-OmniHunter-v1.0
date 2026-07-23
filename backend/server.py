@@ -1917,7 +1917,8 @@ async def get_watch(watch_id: str):
         .to_list(300)
     )
     runs = await db.discovery_runs.find({"watch_id": watch_id}, {"_id": 0}).sort("started_at", -1).to_list(20)
-    return {"watch": watch, "candidates": candidates, "runs": runs}
+    mcp_audits = await db.mcp_audits.find({"watch_id": watch_id}, {"_id": 0}).sort("created_at", -1).to_list(50)
+    return {"watch": watch, "candidates": candidates, "runs": runs, "mcp_audits": mcp_audits}
 
 
 @api.patch("/watches/{watch_id}")
@@ -2414,7 +2415,7 @@ async def root():
     return {"app": "ShoeHunter AI", "status": "ok", "version": app_version()}
 
 
-app.include_router(api)
+
 app.add_middleware(SecurityMiddleware, db=db)
 
 configured_origins = [
@@ -2431,3 +2432,186 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "X-CSRF-Token"],
 )
+
+
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+import secrets
+from datetime import UTC, datetime
+from bs4 import BeautifulSoup
+import re
+from urllib.parse import urlparse
+from fastapi import HTTPException
+
+try:
+    app.mount("/mcp-evidence", StaticFiles(directory=ROOT_DIR / "data/mcp_evidence"), name="mcp_evidence")
+except Exception:
+    pass
+
+class McpAuditRequest(BaseModel):
+    candidate_id: str | None = None
+    url: str | None = None
+
+async def _mcp_audit_targets(watch_id: str, body: McpAuditRequest) -> list[dict]:
+    if body.candidate_id:
+        c = await db.candidate_listings.find_one({"id": body.candidate_id})
+        return [c] if c else []
+    
+    candidates = await db.candidate_listings.find(
+        {"watch_id": watch_id, "status": {"$in": ["attached", "auto", "review"]}}
+    ).to_list(100)
+    return candidates
+
+@api.post("/watches/{watch_id}/mcp-audit")
+async def prepare_watch_mcp_audit(watch_id: str, body: McpAuditRequest):
+    targets = await _mcp_audit_targets(watch_id, body)
+    if not targets:
+        return {"count": 0, "inserted": 0}
+    
+    docs = []
+    for t in targets:
+        docs.append({
+            "id": f"mcp_{secrets.token_hex(6)}",
+            "watch_id": watch_id,
+            "candidate_id": t["id"],
+            "url": t["url"],
+            "store_slug": t.get("store_slug"),
+            "status": "pending",
+            "created_at": datetime.now(UTC).isoformat()
+        })
+    
+    await db.mcp_audits.insert_many(docs)
+    summary = {
+        "count": len(docs),
+        "mode": "desktop",
+        "created_at": docs[0]["created_at"]
+    }
+    await db.watch_queries.update_one(
+        {"id": watch_id},
+        {"$set": {"last_mcp_audit_summary": summary, "updated_at": datetime.now(UTC).isoformat()}}
+    )
+    return {"summary": summary, "count": len(targets), "inserted": len(docs)}
+
+async def _run_single_mcp_audit_execution(audit_id: str):
+    from browser_runtime import browser_pool
+    
+    audit = await db.mcp_audits.find_one({"id": audit_id}, {"_id": 0})
+    if not audit:
+        return None
+
+    url = audit.get("url")
+    if not url:
+        return audit
+
+    watch = await db.watch_queries.find_one({"id": audit.get("watch_id")}, {"_id": 0})
+    desired_sizes = (watch.get("desired_sizes") if watch else []) or []
+
+    try:
+        parsed = urlparse(url)
+        domain = parsed.netloc or "store"
+        
+        abs_screenshot_path = str(ROOT_DIR / f"data/mcp_evidence/{audit_id}.png")
+        os.makedirs(os.path.dirname(abs_screenshot_path), exist_ok=True)
+        
+        html = await browser_pool.fetch(
+            store_slug=audit.get("store_slug") or "mcp_audit",
+            domains=[domain, "*.com", "*.tr", "*.net"],
+            url=url,
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            timeout_ms=25000,
+            screenshot_path=abs_screenshot_path,
+        )
+
+        soup = BeautifulSoup(html, "html.parser")
+        text_content = soup.get_text(" ", strip=True)
+        text_lower = text_content.lower()
+
+        is_blocked = any(b in text_lower for b in ["robot", "captcha", "sıra dışı trafik", "denetim kaydı", "access denied", "403 forbidden"])
+
+        price_match = re.search(r"(\d[\d\.\,]*)\s*(?:TL|₺)", text_content, re.IGNORECASE)
+        visible_price = None
+        if price_match:
+            raw_p = price_match.group(1).replace(".", "").replace(",", ".")
+            try:
+                visible_price = float(raw_p)
+            except ValueError:
+                pass
+
+        visible_stock = not is_blocked and ("stokta" in text_lower or "sepet" in text_lower or visible_price is not None)
+
+        desired_size_found = False
+        if desired_sizes:
+            for s in desired_sizes:
+                if re.search(r"" + re.escape(str(s)) + r"", text_content):
+                    desired_size_found = True
+                    break
+
+        cart_price_found = "sepet" in text_lower and visible_price is not None
+        campaign_match = re.search(r"(%\d+\s*indirim|sepette\s*%?\d+|fırsat|kampanya)", text_content, re.IGNORECASE)
+        campaign_text = campaign_match.group(0) if campaign_match else None
+
+        if is_blocked:
+            status_label = "site_engeli"
+            confidence = 0.1
+        elif visible_price is not None and visible_stock:
+            status_label = "kanitli"
+            confidence = 0.95
+        elif visible_price is not None or visible_stock:
+            status_label = "belirsiz"
+            confidence = 0.6
+        else:
+            status_label = "belirsiz"
+            confidence = 0.3
+
+        updates = {
+            "status": "completed",
+            "status_label": status_label,
+            "visible_price_found": visible_price,
+            "visible_stock_found": visible_stock,
+            "desired_size_found": desired_size_found,
+            "cart_price_evidence_found": cart_price_found,
+            "campaign_text_found": campaign_text,
+            "confidence": confidence,
+            "screenshot_path": f"/mcp-evidence/{audit_id}.png",
+            "updated_at": datetime.now(UTC).isoformat(),
+        }
+        await db.mcp_audits.update_one({"id": audit_id}, {"$set": updates})
+        audit.update(updates)
+        return audit
+    except Exception as exc:
+        err_str = str(exc)
+        status_label = "site_engeli" if ("HTTP" in err_str or "403" in err_str or "timeout" in err_str.lower()) else "belirsiz"
+        updates = {
+            "status": "failed",
+            "status_label": status_label,
+            "error": err_str[:200],
+            "confidence": 0.0,
+            "updated_at": datetime.now(UTC).isoformat(),
+        }
+        await db.mcp_audits.update_one({"id": audit_id}, {"$set": updates})
+        audit.update(updates)
+        return audit
+
+@api.post("/mcp-audits/{audit_id}/run")
+async def run_mcp_audit(audit_id: str):
+    res = await _run_single_mcp_audit_execution(audit_id)
+    if not res:
+        raise HTTPException(status_code=404)
+    return res
+
+@api.post("/watches/{watch_id}/mcp-batch-run")
+async def run_watch_mcp_batch(watch_id: str):
+    audits = await db.mcp_audits.find({"watch_id": watch_id, "status": "pending"}, {"_id": 0}).to_list(100)
+    results = []
+    for audit in audits:
+        res = await _run_single_mcp_audit_execution(audit["id"])
+        results.append(res)
+    return {"count": len(results), "results": results}
+
+@api.get("/watches/{watch_id}/mcp-audits")
+async def get_watch_mcp_audits_endpoint(watch_id: str):
+    audits = await db.mcp_audits.find({"watch_id": watch_id}, {"_id": 0}).sort("created_at", -1).to_list(50)
+    return audits
+
+
+app.include_router(api)

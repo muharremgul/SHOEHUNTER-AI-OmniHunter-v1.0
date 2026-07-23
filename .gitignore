@@ -11,6 +11,9 @@ __pycache__/
 .env
 .shoehunter.key
 backend/.shoehunter.key
+backend/.models/
+mobile/android/app/google-services.json
+mobile/tailscale-connection.json
 backups/
 backend/backups/
 data/*backup*.json

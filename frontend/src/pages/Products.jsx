@@ -51,16 +51,22 @@ export default function Products() {
   const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState("in_stock");
 
-  const load = () =>
-    api.get("/products").then((r) => {
-      const sorted = r.data.sort((a, b) => {
+  const load = async () => {
+    try {
+      const { data } = await api.get("/products");
+      if (!Array.isArray(data)) throw new Error("Invalid products response");
+      const sorted = [...data].sort((a, b) => {
           const priceA = a.best_price ?? Number.POSITIVE_INFINITY;
           const priceB = b.best_price ?? Number.POSITIVE_INFINITY;
           return priceA - priceB;
         });
       setProducts(sorted);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Ürünler yüklenemedi");
+    } finally {
       setLoading(false);
-    });
+    }
+  };
 
   useEffect(() => {
     load();

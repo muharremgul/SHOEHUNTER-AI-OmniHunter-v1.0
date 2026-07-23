@@ -9,10 +9,22 @@ from __future__ import annotations
 
 import re
 from typing import Any
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 
 _PRICE_RE = re.compile(r"(?<!\d)(\d{1,3}(?:[.\s]\d{3})*(?:,\d{1,2})|\d+(?:[.,]\d{1,2})?)(?!\d)")
-_GS1_AI_LENGTHS = {"01": 14, "17": 6}
+_GS1_AI_LENGTHS = {"01": 14, "11": 6, "15": 6, "16": 6, "17": 6}
+_GS1_NAMES = {
+    "01": "gtin",
+    "10": "batch_lot",
+    "11": "production_date_yymmdd",
+    "15": "best_before_yymmdd",
+    "16": "sell_by_yymmdd",
+    "17": "expiry_yymmdd",
+    "21": "serial",
+    "22": "consumer_product_variant",
+}
+_GS1_PATH_QUALIFIERS = ("22", "10", "21")
+_GS1_QUERY_ATTRIBUTES = ("11", "15", "16", "17")
 
 
 def _number(value: Any) -> float | None:
@@ -198,13 +210,13 @@ def parse_gs1_digital_link(value: str | None) -> dict[str, Any]:
     index = 0
     while index + 1 < len(segments):
         ai = segments[index]
-        if ai in {"01", "10", "17", "21", "22"}:
+        if ai in _GS1_NAMES:
             identifiers[ai] = segments[index + 1]
             index += 2
         else:
             index += 1
     query = parse_qs(parsed.query, keep_blank_values=False)
-    for ai in ("01", "10", "17", "21", "22"):
+    for ai in _GS1_NAMES:
         if ai not in identifiers and query.get(ai):
             identifiers[ai] = query[ai][0]
 
@@ -219,14 +231,79 @@ def parse_gs1_digital_link(value: str | None) -> dict[str, Any]:
 
     result["is_gs1_digital_link"] = "01" in identifiers
     result["identifiers"] = {
-        "gtin": identifiers.get("01"),
-        "batch_lot": identifiers.get("10"),
-        "expiry_yymmdd": identifiers.get("17"),
-        "serial": identifiers.get("21"),
-        "consumer_product_variant": identifiers.get("22"),
+        name: identifiers.get(ai) for ai, name in _GS1_NAMES.items()
     }
     result["identifiers"] = {key: item for key, item in result["identifiers"].items() if item}
     return result
+
+
+def parse_gs1_element_string(value: str | None) -> dict[str, Any]:
+    """Parse human-readable GS1 element strings such as ``(01)...(17)...``.
+
+    The parenthesized form is intentionally required here. Unbracketed scanner
+    payloads need the full GS1 AI data table and FNC1 boundary handling and are
+    therefore not guessed.
+    """
+
+    result: dict[str, Any] = {"is_gs1_element_string": False, "identifiers": {}, "warnings": []}
+    text = str(value or "").strip()
+    if not text:
+        return result
+    matches = list(re.finditer(r"\((\d{2,4})\)([^()]*)", text))
+    if not matches:
+        result["warnings"].append("Parantezli GS1 uygulama tanımlayıcısı bulunamadı")
+        return result
+
+    raw: dict[str, str] = {}
+    for match in matches:
+        ai = match.group(1)
+        field = match.group(2).strip().replace("\x1d", "")
+        if ai in _GS1_NAMES and field:
+            raw[ai] = field
+    if "01" in raw:
+        raw["01"] = re.sub(r"\D", "", raw["01"])
+        if not _valid_gtin(raw["01"]):
+            result["warnings"].append("GTIN kontrol basamağı doğrulanamadı")
+    for ai, length in _GS1_AI_LENGTHS.items():
+        if ai in raw and len(raw[ai]) != length:
+            result["warnings"].append(f"AI ({ai}) beklenen uzunlukta değil")
+    result["is_gs1_element_string"] = "01" in raw
+    result["identifiers"] = {
+        name: raw[ai] for ai, name in _GS1_NAMES.items() if raw.get(ai)
+    }
+    return result
+
+
+def build_gs1_digital_link(
+    identifiers: dict[str, Any],
+    *,
+    resolver_base: str = "https://id.gs1.org",
+) -> str:
+    """Build a conservative GS1 Digital Link URI for a GTIN and qualifiers."""
+
+    parsed_base = urlparse(str(resolver_base or "").strip())
+    if parsed_base.scheme != "https" or not parsed_base.netloc or parsed_base.query or parsed_base.fragment:
+        raise ValueError("resolver_base sorgusuz bir HTTPS adresi olmalı")
+
+    reverse_names = {name: ai for ai, name in _GS1_NAMES.items()}
+    raw = {}
+    for key, value in (identifiers or {}).items():
+        ai = key if key in _GS1_NAMES else reverse_names.get(str(key))
+        clean = str(value or "").strip()
+        if ai and clean:
+            raw[ai] = clean
+    gtin = re.sub(r"\D", "", raw.get("01", ""))
+    if not _valid_gtin(gtin) or len(gtin) != 14:
+        raise ValueError("Geçerli 14 haneli AI (01) GTIN gerekli")
+
+    base_path = parsed_base.path.rstrip("/")
+    parts = [base_path.rstrip("/"), "01", quote(gtin, safe="")]
+    for ai in _GS1_PATH_QUALIFIERS:
+        if raw.get(ai):
+            parts.extend((ai, quote(raw[ai], safe="")))
+    path = "/".join(part.strip("/") for part in parts if part != "")
+    query = urlencode([(ai, raw[ai]) for ai in _GS1_QUERY_ATTRIBUTES if raw.get(ai)])
+    return f"{parsed_base.scheme}://{parsed_base.netloc}/{path}" + (f"?{query}" if query else "")
 
 
 def canonical_product_projection(product: dict[str, Any], listings: list[dict[str, Any]]) -> dict[str, Any]:

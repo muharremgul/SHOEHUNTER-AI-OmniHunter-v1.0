@@ -1,5 +1,5 @@
 param(
-    [string]$ApkPath = (Join-Path $PSScriptRoot "dist\ShoeHunter-Radar-0.1.0-test.apk")
+    [string]$ApkPath = (Join-Path $PSScriptRoot "dist\ShopHunter-Radar-0.1.4-test.apk")
 )
 
 $ErrorActionPreference = "Stop"

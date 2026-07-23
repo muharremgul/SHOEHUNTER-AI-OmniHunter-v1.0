@@ -125,6 +125,26 @@ def test_category_filtering_is_safe_by_default_and_cross_category_is_explicit():
     assert cross_category.candidates[1].evidence["category_penalty"] == 0.85
 
 
+def test_model_code_hint_reranks_candidates_but_never_makes_an_exact_sku_decision():
+    query_image = image_bytes((80, 80, 80))
+    visually_close = indexed("OTHER100", query_image)
+    code_match = indexed("JF2443", image_bytes((180, 30, 30)))
+    query = fingerprint_image(query_image, content_type="image/png")
+
+    result = rank_visual_candidates(
+        query,
+        [visually_close, code_match],
+        category="shoes",
+        model_code_hint="JF-2443",
+    )
+
+    assert result.candidates[0].metadata.record_id == "JF2443"
+    assert result.candidates[0].evidence["model_code_hint_match"] is True
+    assert result.candidates[0].evidence["identity_fusion"] == "user_or_ocr_hint_candidate_rerank"
+    assert result.candidates[0].candidate_only is True
+    assert result.candidates[0].exact_sku_decision is False
+
+
 def test_index_document_has_a_bounded_metadata_contract_and_no_fetchable_locator():
     data = image_bytes((70, 80, 90))
     index = LocalVisualCandidateIndex()

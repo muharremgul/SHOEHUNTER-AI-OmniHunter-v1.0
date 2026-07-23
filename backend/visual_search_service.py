@@ -15,8 +15,6 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
-import httpx
-
 from visual_search_index import (
     compute_embedding_from_bytes,
     cosine_similarity,
@@ -44,12 +42,13 @@ async def index_listing_image(
     *,
     listing_url: str,
     image_url: str,
+    image_data: bytes,
     product_id: str | None = None,
     store: str | None = None,
     title: str | None = None,
 ) -> dict[str, Any] | None:
-    """Download, embed and store a listing image. Returns the document or None."""
-    if not image_url:
+    """Embed caller-supplied bytes and store listing metadata; never fetch a URL."""
+    if not image_url or not image_data:
         return None
 
     # Check if already indexed by image URL
@@ -59,23 +58,14 @@ async def index_listing_image(
     if existing:
         return existing
 
-    try:
-        async with httpx.AsyncClient(timeout=15) as client:
-            response = await client.get(image_url, follow_redirects=True)
-            response.raise_for_status()
-            data = response.content
-    except Exception as exc:
-        logger.debug("Gorsel indirilemedi %s: %s", image_url, exc)
-        return None
-
-    sha = image_hash(data)
+    sha = image_hash(image_data)
     # Dedup by content hash
     existing = await db.visual_embeddings.find_one({"image_sha256": sha}, {"_id": 0})
     if existing:
         return existing
 
     try:
-        embedding = compute_embedding_from_bytes(data)
+        embedding = compute_embedding_from_bytes(image_data)
     except Exception as exc:
         logger.warning("Embedding hesaplanamadi %s: %s", image_url, exc)
         return None

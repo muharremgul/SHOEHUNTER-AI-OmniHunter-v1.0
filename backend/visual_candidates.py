@@ -683,6 +683,8 @@ def rank_visual_candidates(
     include_cross_category: bool = False,
     minimum_score: float = 0.0,
     limit: int = 10,
+    model_code_hint: str | None = None,
+    brand_hint: str | None = None,
 ) -> VisualSearchResult:
     """Pure, deterministic ranking over already-created fingerprints."""
 
@@ -693,6 +695,8 @@ def rank_visual_candidates(
     if len(indexed_records) > MAX_INDEX_RECORDS:
         raise VisualCandidateError("indexed_records exceed the safe ranking limit")
     requested_category = _validated_category(category) if category is not None else None
+    normalized_model_hint = re.sub(r"[^a-z0-9]", "", str(model_code_hint or "").casefold())[:80]
+    normalized_brand_hint = re.sub(r"[^a-z0-9]", "", str(brand_hint or "").casefold())[:80]
     candidates = []
     for record in tuple(indexed_records):
         if not isinstance(record, IndexedVisual):
@@ -705,6 +709,21 @@ def rank_visual_candidates(
             score = round(score * 0.85, 6)
             evidence["category_penalty"] = 0.85
         evidence["category_match"] = category_matches
+        if normalized_model_hint:
+            candidate_identity = re.sub(
+                r"[^a-z0-9]",
+                "",
+                f"{record.metadata.model_code or ''} {record.metadata.display_name}".casefold(),
+            )
+            model_code_matches = normalized_model_hint in candidate_identity
+            score = round(score * 0.55 + (0.45 if model_code_matches else 0.0), 6)
+            evidence["model_code_hint_match"] = model_code_matches
+            evidence["identity_fusion"] = "user_or_ocr_hint_candidate_rerank"
+        if normalized_brand_hint:
+            candidate_brand = re.sub(r"[^a-z0-9]", "", str(record.metadata.brand or "").casefold())
+            brand_matches = bool(candidate_brand) and normalized_brand_hint == candidate_brand
+            score = round(score * 0.9 + (0.1 if brand_matches else 0.0), 6)
+            evidence["brand_hint_match"] = brand_matches
         if score < float(minimum_score):
             continue
         candidates.append(
@@ -732,6 +751,8 @@ def generate_visual_candidates(
     minimum_score: float = 0.0,
     limit: int = 10,
     embedding_provider: ImageEmbeddingProvider | None = None,
+    model_code_hint: str | None = None,
+    brand_hint: str | None = None,
 ) -> VisualSearchResult:
     """Byte-in/result-out integration entry point with no disk or network I/O."""
 
@@ -747,6 +768,8 @@ def generate_visual_candidates(
         include_cross_category=include_cross_category,
         minimum_score=minimum_score,
         limit=limit,
+        model_code_hint=model_code_hint,
+        brand_hint=brand_hint,
     )
 
 
@@ -802,6 +825,8 @@ class LocalVisualCandidateIndex:
         include_cross_category: bool = False,
         minimum_score: float = 0.0,
         limit: int = 10,
+        model_code_hint: str | None = None,
+        brand_hint: str | None = None,
     ) -> VisualSearchResult:
         with self._lock:
             records = tuple(self._records.values())
@@ -814,4 +839,6 @@ class LocalVisualCandidateIndex:
             minimum_score=minimum_score,
             limit=limit,
             embedding_provider=self._embedding_provider,
+            model_code_hint=model_code_hint,
+            brand_hint=brand_hint,
         )

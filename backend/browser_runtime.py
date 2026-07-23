@@ -88,6 +88,7 @@ class BrowserPool:
         user_agent,
         timeout_ms=30000,
         browser_wait_selector=None,
+        screenshot_path=None,
     ):
         await validate_remote_url(url, domains)
         store_sem = self._store_sems.setdefault(store_slug, asyncio.Semaphore(STORE_BROWSER_CONCURRENCY))
@@ -95,13 +96,14 @@ class BrowserPool:
             context = await self._context(store_slug, user_agent)
             page = await context.new_page()
             try:
-                from playwright_stealth import stealth_async
-                await stealth_async(page)
-            except ImportError:
-                pass
+                from playwright_stealth.stealth import Stealth
+                await Stealth().apply_stealth_async(page)
+            except ImportError as e:
+                import logging
+                logging.getLogger("shoehunter").warning(f"Stealth import failed: {e}")
 
             async def block_heavy(route):
-                if route.request.resource_type in {"media", "font"}:
+                if route.request.resource_type in {"media", "font"} and not screenshot_path:
                     await route.abort()
                 else:
                     await route.continue_()
@@ -119,10 +121,18 @@ class BrowserPool:
                     try:
                         await page.wait_for_selector(browser_wait_selector, timeout=5000)
                     except Exception:
-                        # The selector is an optional hydration hint. The parser
-                        # still gets the best HTML available when it never appears.
                         pass
                 await validate_remote_url(page.url, domains)
+                
+                # Take screenshot if requested
+                if screenshot_path:
+                    try:
+                        os.makedirs(os.path.dirname(screenshot_path), exist_ok=True)
+                        await page.screenshot(path=screenshot_path, full_page=False)
+                    except Exception as e:
+                        import logging
+                        logging.getLogger("shoehunter").error(f"Screenshot failed: {e}")
+                
                 html = await page.content()
                 if len(html.encode("utf-8")) > MAX_HTML_BYTES:
                     raise RuntimeError("Urun sayfasi izin verilen boyutu asti")

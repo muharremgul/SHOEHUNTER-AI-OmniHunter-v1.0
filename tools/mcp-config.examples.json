@@ -1,0 +1,52 @@
+{
+  "mcpServers": {
+    "parallel-browser-mcp": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "C:/Users/\u00d6GR1/Documents/Ayakkabi/tools/parallel-browser-mcp/node_modules/parallel-browser-mcp/dist/index.js"
+      ],
+      "env": {
+        "BROWSER_MCP_CONFIG": "{\"defaultProvider\":\"playwright\",\"providers\":{\"playwright\":{\"launchOptions\":{\"headless\":true},\"useCloakBrowser\":false}}}"
+      }
+    },
+    "crawlbase": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "C:/Users/\u00d6GR1/Documents/Ayakkabi/tools/crawlbase-mcp/node_modules/@crawlbase/mcp/src/mcp-server.js"
+      ],
+      "env": {
+        "CRAWLBASE_TOKEN": "YOUR_CRAWLBASE_TOKEN",
+        "CRAWLBASE_JS_TOKEN": "YOUR_CRAWLBASE_JS_TOKEN"
+      }
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "C:/Users/\u00d6GR1/Documents/Ayakkabi/tools/playwright-mcp/node_modules/@playwright/mcp/cli.js",
+        "--headless",
+        "--browser",
+        "chrome",
+        "--isolated",
+        "--output-dir",
+        "C:/Users/\u00d6GR1/Documents/Ayakkabi/tools/playwright-mcp/output"
+      ]
+    },
+    "playwright-mobile": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "C:/Users/\u00d6GR1/Documents/Ayakkabi/tools/playwright-mcp/node_modules/@playwright/mcp/cli.js",
+        "--headless",
+        "--browser",
+        "chrome",
+        "--isolated",
+        "--mobile",
+        "--output-dir",
+        "C:/Users/\u00d6GR1/Documents/Ayakkabi/tools/playwright-mcp/output-mobile"
+      ]
+    }
+  }
+}

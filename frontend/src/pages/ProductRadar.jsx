@@ -13,9 +13,11 @@ import {
   Trash,
   WarningCircle,
   X,
+  Sparkle,
+  ListMagnifyingGlass,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import api, { fmtDate, fmtPrice } from "../api";
+import api, { fmtDate, fmtPrice, BACKEND_URL } from "../api";
 
 
 const EMPTY_FORM = {
@@ -138,14 +140,12 @@ export function applySelectedOcrSuggestion(current, result, selectedIndexes) {
   if (!query) return current;
 
   const suggestion = result?.suggested_watch || {};
-  // Always pick the first recognized product code — even if the user's OCR box
-  // selection does not literally contain the code text.  The label scanner
-  // already confirmed it structurally; losing it silently was the root bug.
+  // The user's box selection is authoritative for OCR-derived identity fields.
+  // Decoder-confirmed barcode/QR evidence is handled separately below.
   const selectedProductCode = (result?.product_codes || []).find((code) => queryContainsEvidence(query, code));
-  const anyProductCode = selectedProductCode || (result?.product_codes || [])[0] || null;
-  // Brand is always kept when the scanner found one.  Requiring it to appear
-  // inside the concatenated query text dropped it for multi-box selections.
-  const brand = result?.brand || null;
+  const brand = result?.brand && queryContainsEvidence(query, result.brand)
+    ? result.brand
+    : null;
   const sourceIdentifiers = {};
 
   // A decoder-confirmed barcode/QR remains trustworthy even when the user is
@@ -156,12 +156,13 @@ export function applySelectedOcrSuggestion(current, result, selectedIndexes) {
   if (suggestion.source_identifiers?.qr) {
     sourceIdentifiers.qr = suggestion.source_identifiers.qr;
   }
-  if (anyProductCode) sourceIdentifiers.product_code = anyProductCode;
-  // Carry over any GTIN the scanner extracted so the search plan can use it.
-  if (suggestion.source_identifiers?.gtin) {
+  if (selectedProductCode) sourceIdentifiers.product_code = selectedProductCode;
+  if (suggestion.source_identifiers?.gtin
+      && queryContainsEvidence(query, suggestion.source_identifiers.gtin)) {
     sourceIdentifiers.gtin = suggestion.source_identifiers.gtin;
   }
-  if (suggestion.source_identifiers?.style_code) {
+  if (suggestion.source_identifiers?.style_code
+      && queryContainsEvidence(query, suggestion.source_identifiers.style_code)) {
     sourceIdentifiers.style_code = suggestion.source_identifiers.style_code;
   }
 
@@ -169,7 +170,7 @@ export function applySelectedOcrSuggestion(current, result, selectedIndexes) {
     ...applyLabelSuggestion(current, result),
     raw_query: query,
     brand,
-    model: anyProductCode,
+    model: selectedProductCode || null,
     input_origin: "label_scan",
     source_identifiers: sourceIdentifiers,
   };
@@ -242,18 +243,64 @@ export function ocrOverlayStyle(block) {
   };
 }
 
+function validGtin(value) {
+  if (!/^\d{8}$|^\d{12,14}$/.test(value || "")) return false;
+  const digits = [...value].map(Number);
+  const check = digits.pop();
+  const total = digits.reduce((sum, digit, index) => (
+    sum + digit * ((digits.length - index) % 2 ? 3 : 1)
+  ), 0);
+  return (10 - (total % 10)) % 10 === check;
+}
+
+export function parseGs1DigitalLinkUrl(value) {
+  try {
+    const url = new URL(value);
+    if (!/^https:$/.test(url.protocol)) return null;
+    const parts = url.pathname.split("/").filter(Boolean).map(decodeURIComponent);
+    const raw = {};
+    for (let index = 0; index + 1 < parts.length; index += 1) {
+      const ai = parts[index];
+      if (["01", "10", "11", "15", "16", "17", "21", "22"].includes(ai)) {
+        raw[ai] = parts[index + 1];
+        index += 1;
+      }
+    }
+    ["01", "10", "11", "15", "16", "17", "21", "22"].forEach((ai) => {
+      if (!raw[ai] && url.searchParams.has(ai)) raw[ai] = url.searchParams.get(ai);
+    });
+    const gtin = String(raw["01"] || "").replace(/\D/g, "");
+    if (gtin.length !== 14 || !validGtin(gtin)) return null;
+    return {
+      gtin,
+      batch_lot: raw["10"] || null,
+      production_date_yymmdd: raw["11"] || null,
+      best_before_yymmdd: raw["15"] || null,
+      sell_by_yymmdd: raw["16"] || null,
+      expiry_yymmdd: raw["17"] || null,
+      serial: raw["21"] || null,
+      consumer_product_variant: raw["22"] || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function nativeBarcodeSuggestion(payload) {
   const value = normalizedOcrText(payload?.value);
   if (!value) return null;
   const isBarcode = /^\d{8}$|^\d{12,14}$/.test(value);
   const isUrl = /^https?:\/\//i.test(value);
-  const identifiers = isBarcode
+  const gs1 = isUrl ? parseGs1DigitalLinkUrl(value) : null;
+  const identifiers = gs1
+    ? Object.fromEntries(Object.entries({ qr: value, ...gs1 }).filter(([, item]) => item))
+    : isBarcode
     ? { barcode: value }
     : isUrl
       ? { qr: value }
       : { product_code: value };
   return {
-    raw_query: value,
+    raw_query: gs1?.gtin || value,
     model: isBarcode || isUrl ? null : value,
     input_origin: "label_scan",
     source_identifiers: identifiers,
@@ -312,25 +359,37 @@ export default function ProductRadar() {
   const [busy, setBusy] = useState(false);
   const [activeAction, setActiveAction] = useState(null);
   const [detail, setDetail] = useState(null);
+  const [editingWatch, setEditingWatch] = useState(null);
+  const [editForm, setEditForm] = useState({});
   const [googleShoppingResults, setGoogleShoppingResults] = useState(null);
   const [isGoogleSearching, setIsGoogleSearching] = useState(false);
+  const [lensResults, setLensResults] = useState(null);
+  const [isLensSearching, setIsLensSearching] = useState(false);
+  const [isAiParsing, setIsAiParsing] = useState(false);
   const [storeSelectionInitialized, setStoreSelectionInitialized] = useState(false);
   const [scanBusy, setScanBusy] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [scanPreview, setScanPreview] = useState(null);
   const [selectedOcrBlocks, setSelectedOcrBlocks] = useState([]);
+  const [mcpAuditBusy, setMcpAuditBusy] = useState(null);
   const scanInputRef = useRef(null);
   const scanFileRef = useRef(null);
 
   const load = async () => {
-    const [{ data: watchRows }, { data: storeRows }, { data: profileData }] = await Promise.all([
+    const [watchResult, storeResult, profileResult] = await Promise.allSettled([
       api.get("/watches"),
       api.get("/stores"),
       api.get("/profile"),
     ]);
-    setWatches(watchRows);
-    setStores(storeRows.filter((store) => store.searchable));
-    setProfile(profileData || { household_members: [] });
+    if (watchResult.status === "rejected") throw watchResult.reason;
+
+    setWatches(Array.isArray(watchResult.value.data) ? watchResult.value.data : []);
+    if (storeResult.status === "fulfilled" && Array.isArray(storeResult.value.data)) {
+      setStores(storeResult.value.data.filter((store) => store.searchable));
+    }
+    if (profileResult.status === "fulfilled") {
+      setProfile(profileResult.value.data || { household_members: [] });
+    }
   };
 
   useEffect(() => {
@@ -343,6 +402,9 @@ export default function ProductRadar() {
       if (!suggestion) return;
       setShowForm(true);
       setForm((current) => ({ ...current, ...suggestion }));
+      if (event?.detail?.__outbox_id && window.ShoeHunterNative?.acknowledgeOutbox) {
+        window.ShoeHunterNative.acknowledgeOutbox(event.detail.__outbox_id);
+      }
       toast.success("Barkod okundu; Radar mağaza taramasına hazır");
     };
     window.addEventListener("shoehunter:native-scan", receiveNativeScan);
@@ -364,6 +426,9 @@ export default function ProductRadar() {
       if (!suggestion) return;
       setShowForm(true);
       setForm((current) => ({ ...current, ...suggestion }));
+      if (event?.detail?.__outbox_id && window.ShoeHunterNative?.acknowledgeOutbox) {
+        window.ShoeHunterNative.acknowledgeOutbox(event.detail.__outbox_id);
+      }
       toast.success("Seçtiğiniz kamera yazıları Radar sorgusuna aktarıldı");
     };
     window.addEventListener("shoehunter:native-ocr", receiveNativeOcr);
@@ -434,8 +499,53 @@ export default function ProductRadar() {
     setScanPreview(null);
     setScanResult(null);
     setSelectedOcrBlocks([]);
+    setLensResults(null);
     scanFileRef.current = null;
     if (scanInputRef.current) scanInputRef.current.value = "";
+  };
+
+  const searchGoogleLens = async () => {
+    if (!scanFileRef.current) return;
+    setIsLensSearching(true);
+    setLensResults(null);
+    try {
+      const formData = new FormData();
+      formData.append("image", scanFileRef.current);
+      const { data } = await api.post("/google-lens/search", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      if (!data.success) {
+        throw new Error(data.error || "Google Lens sonuçları alınamadı.");
+      }
+      setLensResults(data.results || []);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || error.response?.data?.error || error.message || "Google Lens araması başarısız oldu.");
+    } finally {
+      setIsLensSearching(false);
+    }
+  };
+
+  const analyzeOcrAi = async () => {
+    if (!scanResult?.raw_text) return;
+    setIsAiParsing(true);
+    try {
+      const { data } = await api.post("/radar/scan-label-ai", { raw_text: scanResult.raw_text });
+      if (data && Object.keys(data).length > 0) {
+        setForm(current => ({
+          ...current,
+          raw_query: data.normalized_query || `${data.brand} ${data.model}`.trim() || current.raw_query,
+          desired_sizes: data.size ? `${data.size}` : current.desired_sizes,
+          max_price: data.price ? parseInt(String(data.price).replace(/[^\d]/g, '')) || current.max_price : current.max_price,
+        }));
+        toast.success("AI ile başarıyla veri çıkartıldı ve forma aktarıldı!");
+      } else {
+        toast.error("AI, etiketten anlamlı bir veri çıkartamadı.");
+      }
+    } catch (error) {
+      toast.error("AI analizi başarısız oldu.");
+    } finally {
+      setIsAiParsing(false);
+    }
   };
 
   const submitLabelFile = async (file, successMessage) => {
@@ -573,8 +683,55 @@ export default function ProductRadar() {
     try {
       const { data } = await api.get(`/watches/${watch.id}`);
       setDetail(data);
+      setTimeout(() => {
+        const el = document.getElementById("radar-detail-section");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    } catch (error) {
+      console.error(error);
+      toast.error("Detay yüklenemedi: " + (error.response?.data?.detail || error.message));
     } finally {
       setActiveAction(null);
+    }
+  };
+
+  const refreshDetail = async (watchId) => {
+    const { data } = await api.get(`/watches/${watchId}`);
+    setDetail(data);
+  };
+
+  const openEdit = (watch) => {
+    setEditingWatch(watch);
+    setEditForm({
+      raw_query: watch.raw_query || "",
+      target_price: watch.target_price || "",
+      discovery_frequency_hours: watch.discovery_frequency_hours || 6,
+      refresh_frequency_minutes: watch.refresh_frequency_minutes || 360,
+      store_scope: watch.store_scope || [],
+      desired_sizes: (watch.desired_sizes || []).join(", "),
+    });
+  };
+
+  const submitEdit = async (event) => {
+    event.preventDefault();
+    if (!editingWatch) return;
+    setBusy(true);
+    try {
+      await api.patch(`/watches/${editingWatch.id}`, {
+        raw_query: editForm.raw_query.trim() || undefined,
+        target_price: editForm.target_price ? Number(editForm.target_price) : null,
+        discovery_frequency_hours: Number(editForm.discovery_frequency_hours),
+        refresh_frequency_minutes: Number(editForm.refresh_frequency_minutes),
+        store_scope: editForm.store_scope,
+        desired_sizes: splitList(editForm.desired_sizes),
+      });
+      toast.success("Radar ayarları güncellendi");
+      setEditingWatch(null);
+      await load();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Radar güncellenemedi");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -596,6 +753,61 @@ export default function ProductRadar() {
       toast.error(error.response?.data?.detail || "Aday güncellenemedi");
     } finally {
       setActiveAction(null);
+    }
+  };
+
+  const prepareMcpAudit = async (watch, options = {}) => {
+    const candidate = options.candidate;
+    const mode = options.mode || "desktop";
+    const actionKey = candidate ? `mcp-${candidate.id}-${mode}` : `mcp-${watch.id}-${mode}`;
+    setMcpAuditBusy(actionKey);
+    try {
+      const { data } = await api.post(`/watches/${watch.id}/mcp-audit`, {
+        candidate_id: candidate?.id || null,
+        url: options.url || null,
+        mode,
+        checks: mode === "mobile"
+          ? ["price", "stock", "sizes", "cart_price", "campaign", "mobile"]
+          : ["price", "stock", "sizes", "cart_price", "campaign"],
+      });
+      const count = data?.summary?.count || 0;
+      toast.success(`${count} link için MCP denetim kaydı hazırlandı`);
+      if (detail?.watch?.id === watch.id) await refreshDetail(watch.id);
+      await load();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "MCP denetimi hazırlanamadı");
+    } finally {
+      setMcpAuditBusy(null);
+    }
+  };
+
+  const runLiveMcpAudit = async (auditId) => {
+    const actionKey = `mcp-run-${auditId}`;
+    setMcpAuditBusy(actionKey);
+    try {
+      const { data } = await api.post(`/mcp-audits/${auditId}/run`);
+      toast.success(`MCP canlı denetimi tamamlandı (${data?.audit?.status_label || "tamamlandı"})`);
+      if (detail?.watch?.id) await refreshDetail(detail.watch.id);
+      await load();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "MCP canlı denetimi çalıştırılamadı");
+    } finally {
+      setMcpAuditBusy(null);
+    }
+  };
+
+  const runBatchMcpAudits = async (watchId) => {
+    const actionKey = `mcp-batch-run-${watchId}`;
+    setMcpAuditBusy(actionKey);
+    try {
+      const { data } = await api.post(`/watches/${watchId}/mcp-batch-run`);
+      toast.success(`${data?.count || 0} link için canlı MCP denetimi tamamlandı`);
+      if (detail?.watch?.id === watchId) await refreshDetail(watchId);
+      await load();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Toplu MCP canlı denetimi çalıştırılamadı");
+    } finally {
+      setMcpAuditBusy(null);
     }
   };
 
@@ -722,6 +934,14 @@ export default function ProductRadar() {
                         <button type="button" className="btn-secondary" onClick={useSelectedOcr} disabled={selectedOcrBlocks.length === 0}>
                           Seçilen Metni Radar'a Aktar
                         </button>
+                        <button type="button" className="btn-secondary text-emerald-400 border-emerald-400/30 flex items-center gap-1.5" onClick={analyzeOcrAi} disabled={isAiParsing}>
+                          {isAiParsing ? <CircleNotch size={14} className="animate-spin" /> : <Sparkle size={14} />}
+                          AI ile Otomatik Form Doldur
+                        </button>
+                        <button type="button" className="btn-secondary text-primary border-primary/30 flex items-center gap-1.5" onClick={searchGoogleLens} disabled={isLensSearching}>
+                          {isLensSearching ? <CircleNotch size={14} className="animate-spin" /> : <Crosshair size={14} />}
+                          Google Lens ile Benzerlerini Bul
+                        </button>
                         <button type="button" className="btn-secondary" onClick={() => scanInputRef.current?.click()}>Başka Fotoğraf Seç</button>
                       </div>
                       {(scanResult.text_blocks || []).length > 0 && (
@@ -793,6 +1013,30 @@ export default function ProductRadar() {
                         <pre className="mt-2 p-3 bg-black/30 rounded whitespace-pre-wrap break-words max-h-44 overflow-auto">{scanResult.raw_text}</pre>
                       </details>
                       <div className="text-[10px] text-zinc-600">Fotoğraf yalnızca bellekte işlenir, sunucuya kaydedilmez ve ücretli OCR API'sine gönderilmez.</div>
+                    </div>
+                  )}
+
+                  {lensResults && (
+                    <div className="mt-6 border-t border-zinc-800 pt-4">
+                      <div className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+                        Google Lens Sonuçları ({lensResults.length})
+                        <button className="text-zinc-500 hover:text-zinc-300 ml-auto" onClick={() => setLensResults(null)}><X size={14}/></button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-96 overflow-auto pr-2">
+                        {lensResults.map((res, i) => (
+                          <a key={i} href={res.link} target="_blank" rel="noreferrer" className="card p-3 flex gap-3 hover:border-primary/40 transition-colors">
+                            {res.image_url && <img src={res.image_url} alt="" className="h-16 w-16 object-contain rounded bg-white shrink-0" />}
+                            <div className="min-w-0 flex-1">
+                              <div className="text-xs font-medium line-clamp-2 text-zinc-200">{res.title}</div>
+                              <div className="text-sm font-semibold text-primary mt-1">{res.price}</div>
+                              <div className="text-[10px] text-zinc-500 mt-0.5 truncate">{res.store_name}</div>
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                      {lensResults.length === 0 && (
+                        <div className="text-xs text-zinc-500">Google Lens'te eşleşen görsel bulunamadı.</div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1118,6 +1362,15 @@ export default function ProductRadar() {
                   </div>
                 )}
 
+                {watch.last_mcp_audit_summary && (
+                  <div className="rounded border border-sky-500/30 bg-sky-500/5 px-3 py-2 text-xs text-sky-200">
+                    <div className="font-medium">MCP denetimi hazir</div>
+                    <div className="mt-1 text-[10px] opacity-80">
+                      {watch.last_mcp_audit_summary.count || 0} link · {watch.last_mcp_audit_summary.mode || "desktop"} · {fmtDate(watch.last_mcp_audit_summary.created_at)}
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div className="border-y border-zinc-800 py-2">
                     <div className="font-mono text-primary">{listingCount}</div>
@@ -1135,8 +1388,36 @@ export default function ProductRadar() {
 
                 <div className="text-xs text-zinc-500">Son keşif: {fmtDate(watch.last_discovery_at)} · Sıradaki: {fmtDate(watch.next_discovery_at)}</div>
                 <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="btn-secondary flex-1 flex items-center justify-center gap-2"
+                    onClick={() => prepareMcpAudit(watch)}
+                    disabled={Boolean(mcpAuditBusy)}
+                  >
+                    {mcpAuditBusy === `mcp-${watch.id}-desktop` ? <CircleNotch size={15} className="animate-spin" /> : <Crosshair size={15} />}
+                    MCP denetimi hazirla
+                  </button>
+                  {watch.last_mcp_audit_summary && (
+                    <button
+                      type="button"
+                      className="btn-primary flex-1 flex items-center justify-center gap-2 !bg-sky-500/20 hover:!bg-sky-500/40 border border-sky-500/30 text-sky-200"
+                      onClick={() => runBatchMcpAudits(watch.id)}
+                      disabled={Boolean(mcpAuditBusy)}
+                    >
+                      {mcpAuditBusy === `mcp-batch-run-${watch.id}` ? <CircleNotch size={15} className="animate-spin" /> : <Play size={15} />}
+                      Toplu Canlı Denetle
+                    </button>
+                  )}
+                </div>
+                <div className="flex gap-2">
                   <button className="btn-secondary flex-1 flex items-center justify-center gap-2" onClick={() => run(watch)} disabled={activeAction === `run-${watch.id}`}>
                     {activeAction === `run-${watch.id}` ? <CircleNotch size={15} className="animate-spin" /> : <Play size={15} />} Şimdi Tara
+                  </button>
+                  <button className="btn-secondary flex-1 flex items-center justify-center gap-2 border-sky-500/30 text-sky-200" onClick={() => openDetail(watch)} disabled={Boolean(activeAction)}>
+                    {activeAction === `detail-${watch.id}` ? <CircleNotch size={15} className="animate-spin" /> : <ListMagnifyingGlass size={15} />} Detayları Aç
+                  </button>
+                  <button className="h-9 w-9 border border-zinc-800 rounded flex items-center justify-center text-zinc-500 hover:text-primary" onClick={() => openEdit(watch)} title="Düzenle">
+                    <Crosshair size={15} />
                   </button>
                   <button className="h-9 w-9 border border-zinc-800 rounded flex items-center justify-center" onClick={() => toggle(watch)} title={watch.active ? "Duraklat" : "Etkinleştir"}>
                     {watch.active ? <Pause size={15} /> : <Play size={15} />}
@@ -1152,12 +1433,12 @@ export default function ProductRadar() {
       )}
 
       {detail && (
-        <div className="border-t border-zinc-800 pt-6 space-y-4">
+        <div id="radar-detail-section" className="border-t border-zinc-800 pt-6 space-y-4 scroll-mt-24">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-xs text-primary uppercase tracking-wider font-mono">Eşleşme İncelemesi</div>
               <h2 className="font-heading font-semibold text-xl mt-1">{detail.watch.raw_query}</h2>
-              <div className="mt-3">
+              <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
                   className="btn-secondary text-xs flex items-center gap-1.5"
@@ -1166,9 +1447,12 @@ export default function ProductRadar() {
                     setGoogleShoppingResults(null);
                     try {
                       const response = await api.post("/google-shopping/search", { query: detail.watch.raw_query });
+                      if (!response.data.success) {
+                        throw new Error(response.data.error || "Google Shopping sonuçları alınamadı.");
+                      }
                       setGoogleShoppingResults(response.data.results || []);
                     } catch (error) {
-                      toast.error(error.response?.data?.detail || "Google Shopping aranırken hata oluştu.");
+                      toast.error(error.response?.data?.detail || error.message || "Google Shopping aranırken hata oluştu.");
                     } finally {
                       setIsGoogleSearching(false);
                     }
@@ -1177,6 +1461,24 @@ export default function ProductRadar() {
                 >
                   {isGoogleSearching ? <CircleNotch size={14} className="animate-spin" /> : <Crosshair size={14} />}
                   Google Shopping'de Fiyat Araştır (Opsiyonel)
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary text-xs flex items-center gap-1.5"
+                  onClick={() => prepareMcpAudit(detail.watch)}
+                  disabled={Boolean(mcpAuditBusy)}
+                >
+                  {mcpAuditBusy === `mcp-${detail.watch.id}-desktop` ? <CircleNotch size={14} className="animate-spin" /> : <Crosshair size={14} />}
+                  MCP toplu denetim
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary text-xs flex items-center gap-1.5"
+                  onClick={() => prepareMcpAudit(detail.watch, { mode: "mobile" })}
+                  disabled={Boolean(mcpAuditBusy)}
+                >
+                  {mcpAuditBusy === `mcp-${detail.watch.id}-mobile` ? <CircleNotch size={14} className="animate-spin" /> : <Camera size={14} />}
+                  Mobil MCP
                 </button>
               </div>
             </div>
@@ -1190,8 +1492,8 @@ export default function ProductRadar() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {googleShoppingResults.map((res, i) => (
-                  <a key={i} href={res.link} target="_blank" rel="noreferrer" className="card p-3 flex gap-3 hover:border-emerald-500/30 transition-colors">
-                    {res.image_url && <img src={res.image_url} alt="" className="h-16 w-16 object-contain rounded bg-white" />}
+                  <a key={i} href={res.link || res.url} target="_blank" rel="noreferrer" className="card p-3 flex gap-3 hover:border-emerald-500/30 transition-colors">
+                    {(res.image_url || res.image) && <img src={res.image_url || res.image} alt="" className="h-16 w-16 object-contain rounded bg-white" />}
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-medium line-clamp-2 text-zinc-300">{res.title}</div>
                       <div className="text-sm font-semibold text-emerald-400 mt-1">{res.price} TL</div>
@@ -1203,6 +1505,89 @@ export default function ProductRadar() {
               {googleShoppingResults.length === 0 && (
                 <div className="text-xs text-zinc-500">Google Shopping'de sonuç bulunamadı veya bot korumasına (CAPTCHA) takıldı.</div>
               )}
+            </section>
+          )}
+          {(detail.mcp_audits || []).length > 0 && (
+            <section className="rounded border border-sky-500/30 bg-sky-500/5 p-4 space-y-3" data-testid="radar-mcp-audits">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="text-xs font-medium text-sky-200">MCP denetim kayıtları</div>
+                  <div className="text-[11px] text-sky-200/70 mt-1">
+                    Playwright MCP ile fiyat, stok, beden, kampanya ve sepette fiyat kanıtı.
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    className="btn-secondary !py-1 text-xs border-sky-500/40 text-sky-200 flex items-center gap-1"
+                    onClick={() => runBatchMcpAudits(detail.watch.id)}
+                    disabled={Boolean(mcpAuditBusy)}
+                  >
+                    {mcpAuditBusy === `mcp-batch-run-${detail.watch.id}` ? <CircleNotch size={12} className="animate-spin" /> : <Play size={12} />}
+                    Toplu Canlı Denetle
+                  </button>
+                  <span className="text-[10px] uppercase tracking-wider rounded border border-sky-500/30 px-2 py-1 text-sky-200">
+                    {(detail.mcp_audits || []).length} kayıt
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {(detail.mcp_audits || []).slice(0, 12).map((audit) => {
+                  const label = audit.status_label || (audit.status === "prepared" ? "hazır" : audit.status);
+                  const badgeStyle =
+                    label === "kanitli"
+                      ? "border-emerald-500/40 text-emerald-300 bg-emerald-500/10"
+                      : label === "site_engeli"
+                      ? "border-red-500/40 text-red-300 bg-red-500/10"
+                      : label === "tool_missing"
+                      ? "border-purple-500/40 text-purple-300 bg-purple-500/10"
+                      : "border-amber-500/40 text-amber-300 bg-amber-500/10";
+                  return (
+                    <div
+                      key={audit.id}
+                      className="rounded border border-sky-500/20 bg-black/30 p-2.5 text-xs flex flex-col justify-between gap-2"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sky-100 font-medium truncate">{audit.store || "Mağaza"}</span>
+                          <span className={`text-[10px] uppercase px-1.5 py-0.5 rounded border ${badgeStyle}`}>
+                            {label}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-zinc-400 mt-1 line-clamp-2">{audit.title || audit.url}</div>
+                        {audit.visible_price_found !== undefined && audit.visible_price_found !== null && (
+                          <div className="text-[11px] font-bold text-emerald-400 mt-1">
+                            ₺{audit.visible_price_found}
+                            {audit.cart_price_evidence_found ? " (Sepette Fiyat)" : ""}
+                          </div>
+                        )}
+                        {audit.campaign_text_found && (
+                          <div className="text-[10px] text-amber-300 mt-0.5">
+                            {audit.campaign_text_found}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-zinc-800">
+                        <a href={audit.url} target="_blank" rel="noreferrer" className="text-[10px] text-sky-400 hover:underline truncate">
+                          Sayfayı Aç ↗
+                        </a>
+                        {audit.screenshot_path && (
+                          <a href={`${BACKEND_URL}${audit.screenshot_path}`} target="_blank" rel="noreferrer" className="text-[10px] font-medium text-emerald-400 hover:underline truncate ml-2">
+                            Kanıtı Gör 📷
+                          </a>
+                        )}
+                        <button
+                          className="text-[10px] bg-sky-500/20 hover:bg-sky-500/40 text-sky-200 border border-sky-500/30 rounded px-2 py-0.5 flex items-center gap-1"
+                          onClick={() => runLiveMcpAudit(audit.id)}
+                          disabled={Boolean(mcpAuditBusy)}
+                        >
+                          {mcpAuditBusy === `mcp-run-${audit.id}` ? <CircleNotch size={10} className="animate-spin" /> : <Play size={10} />}
+                          Canlı Denetle
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </section>
           )}
           {detailLatestRun && (
@@ -1272,6 +1657,14 @@ export default function ProductRadar() {
                     </div>
                   )}
                   <div className="flex flex-wrap gap-2 mt-3">
+                    <button
+                      className="btn-secondary !py-1.5 flex items-center gap-1"
+                      onClick={() => prepareMcpAudit(detail.watch, { candidate })}
+                      disabled={Boolean(mcpAuditBusy)}
+                    >
+                      {mcpAuditBusy === `mcp-${candidate.id}-desktop` ? <CircleNotch size={14} className="animate-spin" /> : <Crosshair size={14} />}
+                      MCP kaniti
+                    </button>
                     <button className="btn-primary !py-1.5 flex items-center gap-1" onClick={() => review(candidate, "approve")} disabled={activeAction === `review-${candidate.id}`}><Check size={14} /> Doğru</button>
                     <button className="btn-secondary !py-1.5" onClick={() => review(candidate, "variant")} disabled={activeAction === `review-${candidate.id}`}>Farklı varyant</button>
                     <button className="btn-secondary !py-1.5" onClick={() => review(candidate, "same_family")} disabled={activeAction === `review-${candidate.id}`}>Aynı aile</button>
@@ -1284,6 +1677,108 @@ export default function ProductRadar() {
           {detail.candidates.every((candidate) => candidate.status !== "review") && (
             <div className="text-sm text-zinc-500 border-y border-zinc-800 py-6">İncelenecek orta güvenli eşleşme yok.</div>
           )}
+        </div>
+      )}
+
+      {editingWatch && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl text-primary font-bold mb-4">Radarı Düzenle</h2>
+            <form onSubmit={submitEdit} className="space-y-4">
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1">Ürün Adı / Arama Metni</label>
+                <input
+                  type="text"
+                  className="input-field font-semibold text-white"
+                  value={editForm.raw_query}
+                  onChange={(e) => setEditForm({ ...editForm, raw_query: e.target.value })}
+                  placeholder="Ürün modeli ve markası"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1">Hedef Fiyat</label>
+                <input
+                  type="number"
+                  className="input-field"
+                  value={editForm.target_price}
+                  onChange={(e) => setEditForm({ ...editForm, target_price: e.target.value })}
+                  placeholder="Opsiyonel maksimum tutar"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1">Bedenler (Virgülle ayırın)</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={editForm.desired_sizes}
+                  onChange={(e) => setEditForm({ ...editForm, desired_sizes: e.target.value })}
+                  placeholder="Örn: 42, 42.5"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-zinc-400 mb-1">Yeni İlan Tarama Sıklığı</label>
+                  <select
+                    className="input-field"
+                    value={editForm.discovery_frequency_hours}
+                    onChange={(e) => setEditForm({ ...editForm, discovery_frequency_hours: e.target.value })}
+                  >
+                    <option value="6">6 Saatte bir</option>
+                    <option value="12">12 Saatte bir</option>
+                    <option value="24">Günde bir</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-zinc-400 mb-1">Fiyat/Stok Kontrol Sıklığı</label>
+                  <select
+                    className="input-field"
+                    value={editForm.refresh_frequency_minutes}
+                    onChange={(e) => setEditForm({ ...editForm, refresh_frequency_minutes: e.target.value })}
+                  >
+                    <option value="180">3 Saatte bir</option>
+                    <option value="360">6 Saatte bir</option>
+                    <option value="720">12 Saatte bir</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs text-zinc-400">Taranacak Mağazalar</label>
+                  <div className="flex gap-2">
+                    <button type="button" className="text-[10px] text-primary" onClick={() => setEditForm({ ...editForm, store_scope: [...allStoreSlugs] })}>Tümünü Seç</button>
+                    <button type="button" className="text-[10px] text-zinc-500 hover:text-red-400" onClick={() => setEditForm({ ...editForm, store_scope: [] })}>Temizle</button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {stores.map((store) => {
+                    const isSelected = editForm.store_scope.includes(store.slug);
+                    return (
+                      <button
+                        key={`edit-store-${store.slug}`}
+                        type="button"
+                        onClick={() => setEditForm({
+                          ...editForm,
+                          store_scope: toggleStoreScope(editForm.store_scope, store.slug)
+                        })}
+                        className={`rounded border px-2 py-1 text-xs transition-colors ${isSelected ? "border-primary/50 text-primary bg-primary/10" : "border-zinc-800 text-zinc-500 bg-transparent hover:border-zinc-700"}`}
+                      >
+                        {store.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="pt-4 flex gap-3">
+                <button type="submit" className="btn-primary flex-1 flex justify-center items-center gap-2" disabled={busy}>
+                  {busy ? <CircleNotch className="animate-spin" /> : "Kaydet"}
+                </button>
+                <button type="button" className="btn-secondary flex-1" onClick={() => setEditingWatch(null)} disabled={busy}>
+                  İptal
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

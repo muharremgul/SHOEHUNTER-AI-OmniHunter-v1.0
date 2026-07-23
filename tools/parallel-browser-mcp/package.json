@@ -1,0 +1,12 @@
+{
+  "name": "shoehunter-parallel-browser-mcp-runner",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Project-local runner for parallel-browser-mcp experiments.",
+  "scripts": {
+    "start": "parallel-browser-mcp"
+  },
+  "dependencies": {
+    "parallel-browser-mcp": "0.1.14"
+  }
+}

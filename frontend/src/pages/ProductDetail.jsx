@@ -125,10 +125,25 @@ export default function ProductDetail() {
   const [busy, setBusy] = useState(false);
   const [checkingId, setCheckingId] = useState(null);
   const [rule, setRule] = useState({ target_price: "", size: "", spectrum_mode: false, cooldown_hours: 24 });
+  const [visualFile, setVisualFile] = useState(null);
+  const [visualResults, setVisualResults] = useState(null);
+  const [visualBusy, setVisualBusy] = useState(false);
+  const [evidenceRows, setEvidenceRows] = useState([]);
+  const [evidenceFile, setEvidenceFile] = useState(null);
+  const [evidenceBusy, setEvidenceBusy] = useState(false);
+  const [evidenceForm, setEvidenceForm] = useState({
+    store_name: "",
+    branch_name: "",
+    price: "",
+    source_type: "shelf_label",
+    gtin: "",
+    product_code: "",
+  });
 
   const load = useCallback(() => {
     api.get(`/products/${id}`).then((r) => setData(r.data)).catch(() => navigate("/urunler"));
     api.get(`/products/${id}/buy-advice`).then((r) => setAdvice(r.data)).catch(() => {});
+    api.get(`/evidence/physical-price/${id}`).then((r) => setEvidenceRows(r.data.evidence || [])).catch(() => {});
   }, [id, navigate]);
 
   useEffect(() => {
@@ -225,6 +240,105 @@ export default function ProductDetail() {
     load();
   };
 
+  const searchVisualCatalog = async () => {
+    if (!visualFile) return toast.error("Önce ürün fotoğrafı seçin");
+    setVisualBusy(true);
+    try {
+      const body = new FormData();
+      body.append("image", visualFile);
+      if (product.category) body.append("category", product.category);
+      else body.append("include_cross_category", "true");
+      const modelCodeHint = product.model || product.identity?.model_codes?.[0] || listings.find((item) => item.model_code)?.model_code;
+      if (modelCodeHint) body.append("model_code_hint", modelCodeHint);
+      if (product.brand) body.append("brand_hint", product.brand);
+      body.append("limit", "12");
+      const { data: result } = await api.post("/visual-search", body, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setVisualResults(result.visual_candidates || []);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Görsel katalog aranamadı");
+    } finally {
+      setVisualBusy(false);
+    }
+  };
+
+  const indexVisualCatalog = async () => {
+    if (!visualFile) return toast.error("Önce doğrulanmış ürün fotoğrafı seçin");
+    setVisualBusy(true);
+    try {
+      const recordId = `${id}-${Date.now()}`;
+      const body = new FormData();
+      body.append("image", visualFile);
+      body.append("record_id", recordId);
+      body.append("canonical_product_id", id);
+      body.append("category", product.category || "other");
+      body.append("source_name", "user_catalog");
+      body.append("source_item_id", recordId);
+      body.append("display_name", product.name);
+      body.append("image_role", "product");
+      if (product.brand) body.append("brand", product.brand);
+      if (product.model) body.append("model_code", product.model);
+      await api.post("/visual-search/index", body, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      toast.success("Doğrulanmış görsel özel kataloğa eklendi");
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Görsel indekslenemedi");
+    } finally {
+      setVisualBusy(false);
+    }
+  };
+
+  const submitPhysicalEvidence = async () => {
+    if (!evidenceFile || !evidenceForm.store_name.trim() || !evidenceForm.price) {
+      return toast.error("Fotoğraf, mağaza ve fiyat gereklidir");
+    }
+    setEvidenceBusy(true);
+    try {
+      const body = new FormData();
+      body.append("image", evidenceFile);
+      body.append("product_id", id);
+      body.append("store_id", evidenceForm.store_name.trim().toLocaleLowerCase("tr-TR").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "physical-store");
+      body.append("store_name", evidenceForm.store_name.trim());
+      body.append("price", evidenceForm.price);
+      body.append("source_type", evidenceForm.source_type);
+      body.append("evidence_confidence", "0.85");
+      body.append("capture_session_reference", `${id}-${Date.now()}`);
+      if (evidenceForm.branch_name) body.append("branch_name", evidenceForm.branch_name);
+      if (evidenceForm.gtin) body.append("gtin", evidenceForm.gtin);
+      if (evidenceForm.product_code) body.append("product_code", evidenceForm.product_code);
+      const { data: result } = await api.post("/evidence/physical-price/upload", body, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      toast.success(result.corroboration?.status === "corroborated"
+        ? "İkinci bağımsız kanıt eşleşti; moderasyona hazır"
+        : "Kanıt kaydedildi; doğrulama için ikinci bağımsız kanıt bekleniyor");
+      setEvidenceFile(null);
+      setEvidenceForm((current) => ({ ...current, price: "" }));
+      load();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Fiziksel fiyat kanıtı kaydedilemedi");
+    } finally {
+      setEvidenceBusy(false);
+    }
+  };
+
+  const moderatePhysicalEvidence = async (decision) => {
+    try {
+      await api.post("/evidence/physical-price/moderate", {
+        evidence_ids: evidenceRows.map((item) => item.id),
+        decision,
+        moderator_reference: "local-admin",
+        note: "Ürün detay ekranından incelendi",
+      });
+      toast.success(decision === "approved" ? "Kanıtlar onaylandı" : "Kanıtlar reddedildi");
+      load();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Moderasyon tamamlanamadı");
+    }
+  };
+
   return (
     <div className="space-y-6" data-testid="product-detail-page">
       <button onClick={() => navigate("/urunler")} className="text-zinc-400 hover:text-white text-sm flex items-center gap-2 transition-colors" data-testid="back-button">
@@ -258,6 +372,97 @@ export default function ProductDetail() {
       </div>
 
       <BuyAdviceCard advice={advice} />
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <section className="card p-6" data-testid="visual-catalog-panel">
+          <h3 className="font-heading font-semibold text-lg">Özel Görsel Katalog</h3>
+          <p className="text-xs text-zinc-500 mt-1">
+            Fotoğraf sunucudan internete gönderilmez. Sonuçlar yalnız adaydır; ürün kodu veya GTIN ayrıca doğrulanır.
+          </p>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="input-dark mt-4"
+            onChange={(event) => setVisualFile(event.target.files?.[0] || null)}
+          />
+          <div className="flex flex-wrap gap-2 mt-3">
+            <button className="btn-primary" onClick={searchVisualCatalog} disabled={visualBusy}>
+              {visualBusy ? "İşleniyor..." : "Benzer ürünleri ara"}
+            </button>
+            <button className="btn-secondary" onClick={indexVisualCatalog} disabled={visualBusy}>
+              Bu doğrulanmış görseli kataloğa ekle
+            </button>
+          </div>
+          {visualResults && (
+            <div className="mt-4 space-y-2 max-h-72 overflow-auto">
+              {visualResults.length === 0 ? (
+                <div className="text-xs text-zinc-500">Özel katalogda yeterli benzerlik bulunamadı.</div>
+              ) : visualResults.map((candidate) => (
+                <button
+                  key={candidate.metadata.record_id}
+                  type="button"
+                  onClick={() => navigate(`/urunler/${candidate.metadata.canonical_product_id}`)}
+                  className="w-full text-left rounded border border-zinc-800 p-3 hover:border-primary/40"
+                >
+                  <div className="text-sm text-zinc-200">{candidate.metadata.display_name}</div>
+                  <div className="text-xs text-zinc-500 mt-1">
+                    Benzerlik %{Math.round(candidate.similarity_score * 100)} · {candidate.metadata.brand || "Marka bilinmiyor"}
+                    {candidate.metadata.model_code ? ` · ${candidate.metadata.model_code}` : ""}
+                  </div>
+                  <div className="text-[10px] text-amber-300 mt-1">Aday eşleşme — kesin SKU kararı değildir</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="card p-6" data-testid="physical-price-panel">
+          <h3 className="font-heading font-semibold text-lg">Fiziksel Mağaza Fiyat Kanıtı</h3>
+          <p className="text-xs text-zinc-500 mt-1">
+            Raf etiketi veya fiş ayrı tutulur; çevrim içi toplam maliyeti otomatik değiştirmez.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
+            <input className="input-dark" placeholder="Mağaza *" value={evidenceForm.store_name} onChange={(e) => setEvidenceForm({ ...evidenceForm, store_name: e.target.value })} />
+            <input className="input-dark" placeholder="Şube" value={evidenceForm.branch_name} onChange={(e) => setEvidenceForm({ ...evidenceForm, branch_name: e.target.value })} />
+            <input type="number" min="0" step="0.01" className="input-dark" placeholder="Görülen fiyat (TL) *" value={evidenceForm.price} onChange={(e) => setEvidenceForm({ ...evidenceForm, price: e.target.value })} />
+            <select className="input-dark" value={evidenceForm.source_type} onChange={(e) => setEvidenceForm({ ...evidenceForm, source_type: e.target.value })}>
+              <option value="shelf_label">Raf etiketi</option>
+              <option value="receipt">Fiş / kasa fiyatı</option>
+              <option value="barcode_product_label">Ürün barkod etiketi</option>
+            </select>
+            <input className="input-dark" placeholder="GTIN / EAN" value={evidenceForm.gtin} onChange={(e) => setEvidenceForm({ ...evidenceForm, gtin: e.target.value })} />
+            <input className="input-dark" placeholder="Ürün kodu" value={evidenceForm.product_code} onChange={(e) => setEvidenceForm({ ...evidenceForm, product_code: e.target.value })} />
+          </div>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="input-dark mt-2"
+            onChange={(event) => setEvidenceFile(event.target.files?.[0] || null)}
+          />
+          <button className="btn-primary mt-3" onClick={submitPhysicalEvidence} disabled={evidenceBusy}>
+            {evidenceBusy ? "Kaydediliyor..." : "Kanıtı gizlilik filtresiyle kaydet"}
+          </button>
+          {evidenceRows.length > 0 && (
+            <div className="mt-4 border-t border-zinc-800 pt-3">
+              <div className="space-y-2 max-h-48 overflow-auto">
+                {evidenceRows.map((item) => (
+                  <div key={item.id} className="flex justify-between gap-3 text-xs border-b border-zinc-800 pb-2">
+                    <div>
+                      <div className="text-zinc-300">{item.store?.name} · {item.source_type}</div>
+                      <div className="text-zinc-500">{item.moderation?.status} · güven %{Math.round((item.evidence_confidence || 0) * 100)}</div>
+                    </div>
+                    <div className="text-primary font-mono">{fmtPrice((item.observed_price?.amount_minor || 0) / 100)}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2 mt-3">
+                <button className="btn-secondary text-xs" onClick={() => moderatePhysicalEvidence("approved")}>Eşleşen kanıtları onayla</button>
+                <button className="btn-secondary text-xs text-red-300" onClick={() => moderatePhysicalEvidence("rejected")}>Reddet</button>
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
 
       {family?.length > 0 && (
         <div className="card p-6" data-testid="product-family-section">

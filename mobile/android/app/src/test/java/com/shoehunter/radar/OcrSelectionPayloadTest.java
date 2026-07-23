@@ -42,4 +42,12 @@ public class OcrSelectionPayloadTest {
         assertEquals("Adidas", OcrSelectionPayload.findBrand(
                 Arrays.asList("adidas", "JR5220")));
     }
+
+    @Test
+    public void liveCandidateOverlayExtractsAVisiblePriceWithoutInventingOne() {
+        assertEquals("24.999 TL", OcrSelectionPayload.findPriceText(
+                Arrays.asList("NORDMENDE", "24.999 TL")));
+        assertNull(OcrSelectionPayload.findPriceText(
+                Arrays.asList("NORDMENDE", "Q65NM1105")));
+    }
 }

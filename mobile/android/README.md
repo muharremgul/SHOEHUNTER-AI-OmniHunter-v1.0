@@ -1,4 +1,4 @@
-# ShoeHunter Android
+# ShopHunter Radar Android
 
 Telefon ve tablet için kişisel test uygulamasıdır. Uygulama ilk açılışta ShoeHunter web sunucusunun adresini sorar ve adresi cihazda saklar.
 
@@ -23,7 +23,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\mobile\build-android-a
 Çıktı:
 
 ```text
-mobile\dist\ShoeHunter-Radar-0.1.0-test.apk
+mobile\dist\ShopHunter-Radar-0.1.4-test.apk
 ```
 
 ## USB ile kurulum

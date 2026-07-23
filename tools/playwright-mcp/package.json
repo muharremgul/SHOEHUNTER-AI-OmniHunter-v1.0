@@ -1,0 +1,12 @@
+{
+  "name": "shoehunter-playwright-mcp-runner",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Project-local runner for Microsoft Playwright MCP experiments.",
+  "scripts": {
+    "start": "playwright-mcp"
+  },
+  "dependencies": {
+    "@playwright/mcp": "0.0.78"
+  }
+}

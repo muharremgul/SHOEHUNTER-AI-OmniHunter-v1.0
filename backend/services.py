@@ -9,6 +9,7 @@ import httpx
 
 from alerting import create_alert, telegram_alert_message
 from engines import get_engine_for_url
+from fcm_service import send_fcm_alert
 from insights import compute_buy_decision, compute_price_insight, short_comment
 from product_identity import identity_from_title, normalize_size
 from secret_store import get_secret
@@ -173,24 +174,29 @@ async def notify_alert(db, alert):
             {"$set": {"telegram_sent": False, "notification_status": "dev_only"}},
         )
         return {"sent": False, "skipped": True, "reason": "developer_only_alert"}
+    push_result = await send_fcm_alert(db, alert)
     result = await send_telegram(
         db,
         telegram_alert_message(alert),
         reply_markup=telegram_feedback_keyboard(alert["id"]),
     )
-    status = "sent" if result.get("sent") else ("skipped" if result.get("skipped") else "failed")
+    sent = bool(result.get("sent") or push_result.get("sent"))
+    status = "sent" if sent else ("skipped" if result.get("skipped") and push_result.get("skipped") else "failed")
     await db.alerts.update_one(
         {"id": alert["id"]},
         {
             "$set": {
                 "telegram_sent": bool(result.get("sent")),
                 "telegram_error": result.get("error") or result.get("reason"),
+                "fcm_sent": bool(push_result.get("sent")),
+                "fcm_sent_count": int(push_result.get("sent_count") or 0),
+                "fcm_error": push_result.get("error") or push_result.get("reason"),
                 "notification_status": status,
                 "last_notified_at": datetime.now(timezone.utc),
             }
         },
     )
-    return result
+    return {**result, "push": push_result, "sent": sent}
 
 
 async def send_alert_digest(db):

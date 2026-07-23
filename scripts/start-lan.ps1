@@ -1,6 +1,8 @@
 param(
   [int]$FrontendPort = 3000,
-  [int]$BackendPort = 8000
+  [int]$BackendPort = 8000,
+  [string]$FirebaseProjectId = "shophunter-radar",
+  [string]$FirebaseCredentials = (Join-Path $env:USERPROFILE "Documents\ShoeHunter-Secrets\shoehunter-firebase-admin.json")
 )
 
 $Root = Split-Path -Parent $PSScriptRoot
@@ -36,7 +38,28 @@ Write-Host "Telefon/tablet adresi: http://$ip`:$FrontendPort"
 Write-Host "API adresi: http://$ip`:$BackendPort"
 
 $env:CORS_ORIGINS = "http://localhost:$FrontendPort,http://127.0.0.1:$FrontendPort,http://$ip`:$FrontendPort"
+$env:FIREBASE_PROJECT_ID = $FirebaseProjectId
+if (Test-Path -LiteralPath $FirebaseCredentials) {
+  $env:GOOGLE_APPLICATION_CREDENTIALS = $FirebaseCredentials
+  Write-Host "FCM HTTP v1 hazir: $FirebaseProjectId"
+} else {
+  Remove-Item Env:GOOGLE_APPLICATION_CREDENTIALS -ErrorAction SilentlyContinue
+  Write-Warning "FCM servis hesabi bulunamadi; yerel bildirim sorgulama yedegi calismaya devam edecek."
+}
+# Bu betik kalici scheduler ve kuyruga ozel iki worker baslatir. Sunucunun
+# kendi icindeki scheduler/worker da acik kalirsa browser kuyrugundaki ayni isi
+# sunucu sureci kapabilir ve Playwright yanlis Windows oturumunda baslayabilir.
+# Kuyruklarin tek sahibi olmasi icin bu calistirma modunda gomulu isciyi kapat.
+$env:EMBEDDED_SCHEDULER = "false"
 $BackendProcess = Start-Process -FilePath $Python -ArgumentList "-m","uvicorn","server:app","--host","0.0.0.0","--port",$BackendPort -WorkingDirectory $Backend -WindowStyle Hidden -RedirectStandardOutput (Join-Path $LogDir "backend.out.log") -RedirectStandardError (Join-Path $LogDir "backend.err.log") -PassThru
+
+$env:WORKER_QUEUE = "default"
+$Worker1Process = Start-Process -FilePath $Python -ArgumentList "worker.py" -WorkingDirectory $Backend -WindowStyle Hidden -RedirectStandardOutput (Join-Path $LogDir "worker_default.out.log") -RedirectStandardError (Join-Path $LogDir "worker_default.err.log") -PassThru
+
+$env:WORKER_QUEUE = "browser"
+$Worker2Process = Start-Process -FilePath $Python -ArgumentList "worker.py" -WorkingDirectory $Backend -WindowStyle Hidden -RedirectStandardOutput (Join-Path $LogDir "worker_browser.out.log") -RedirectStandardError (Join-Path $LogDir "worker_browser.err.log") -PassThru
+
+$SchedulerProcess = Start-Process -FilePath $Python -ArgumentList "scheduler_worker.py" -WorkingDirectory $Backend -WindowStyle Hidden -RedirectStandardOutput (Join-Path $LogDir "scheduler.out.log") -RedirectStandardError (Join-Path $LogDir "scheduler.err.log") -PassThru
 
 $env:HOST = "0.0.0.0"
 $env:PORT = "$FrontendPort"
@@ -45,5 +68,8 @@ Remove-Item Env:REACT_APP_BACKEND_URL -ErrorAction SilentlyContinue
 $FrontendProcess = Start-Process -FilePath $Node -ArgumentList $ReactScripts -WorkingDirectory $Frontend -WindowStyle Hidden -RedirectStandardOutput (Join-Path $LogDir "frontend.out.log") -RedirectStandardError (Join-Path $LogDir "frontend.err.log") -PassThru
 
 Write-Host "Backend PID: $($BackendProcess.Id)"
+Write-Host "Worker(Default) PID: $($Worker1Process.Id)"
+Write-Host "Worker(Browser) PID: $($Worker2Process.Id)"
+Write-Host "Scheduler PID: $($SchedulerProcess.Id)"
 Write-Host "Frontend PID: $($FrontendProcess.Id)"
 Write-Host "Baslatildi. Android cihazlarda Chrome ile yukaridaki adresi acabilir veya test APK'sini kullanabilirsin."

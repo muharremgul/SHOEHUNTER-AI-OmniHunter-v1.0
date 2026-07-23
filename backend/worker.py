@@ -25,7 +25,11 @@ async def handle_job(db, job):
         )
         return {"run_id": run["id"], "alerts": len(alerts)}
     if job_type == "discover_due":
-        runs = await run_due_discoveries(db)
+        # Normal scheduler taramalarinda varsayilan 20 kayitlik sinir korunur.
+        # Kontrollü kabul/iyilestirme calismalari ayni kalici kuyruk yolunu
+        # kullanirken tek bir vadesi gelen Radari hedefleyebilsin.
+        limit = max(1, min(20, int(payload.get("limit") or 20)))
+        runs = await run_due_discoveries(db, limit=limit)
         return {"runs": len(runs)}
     if job_type == "discover_watch":
         watch = await db.watch_queries.find_one({"id": payload["watch_id"]}, {"_id": 0})

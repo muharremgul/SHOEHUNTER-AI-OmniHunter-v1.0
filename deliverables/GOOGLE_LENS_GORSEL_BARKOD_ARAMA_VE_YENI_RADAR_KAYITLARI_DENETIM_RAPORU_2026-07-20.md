@@ -960,3 +960,555 @@ Bu plan Google Lens'i kopyalamaya çalışmaz; Lens'in güçlü ilkesini — gö
 - Marketplace sonuçlarında toplam maliyetin tam hesaplanabildiği teklif oranı nedir?
 - Hangi kategori barkoddan en yüksek kimlik kapsamasını, hangisi OCR/görsel fallback ihtiyacını gösterir?
 - Fiziksel fiyat katkısında ikinci kanıt/moderasyon eşiği ne olmalıdır?
+
+## 31. 21 Temmuz 2026 — yeni modelle yeniden denetim ve uygulama durumu
+
+Bu ek bölüm, önceki çalışmanın yeni modelle yeniden okunması ve çalışan kod/test kanıtıyla karşılaştırılmasıdır. Önceki kazanımlar korunmuş, fakat sonuç üretimini doğrudan etkileyen dört ek hata bulunup düzeltilmiştir.
+
+### 31.1 Yeni modelin bulduğu ek sorunlar
+
+| Sorun | Kullanıcı etkisi | Yapılan düzeltme |
+|---|---|---|
+| Google Lens motoru var olmayan `stores.base_store` modülünü içe aktarıyordu | Endpoint çağrıldığında motor yüklenemiyordu | Ortak `StoreEngine` ve `parse_price_text` doğrudan `engines` modülünden bağlandı |
+| Google Shopping ayrıştırıcısı `JR5220` gibi harf-rakam ürün kodunu fiyat sanabiliyordu | Gerçek başlık kayboluyor, sonuç eleniyor veya yanlış fiyat oluşabiliyordu | Fiyat adayı için `TL`, `₺` veya desteklenen para işareti kanıtı zorunlu yapıldı |
+| Shopping backend'i `url/image`, React kartı `link/image_url` bekliyordu | Sonuç gelse bile bağlantı ve görsel boş kalabiliyordu | Canonical alanlarla birlikte iki arayüz uyumluluk alanı da döndürülüyor; React iki biçimi de okuyabiliyor |
+| `success:false` yanıtı HTTP 200 ile geldiğinde arayüz hata göstermiyordu | Erişim/ayrıştırma hatası “0 sonuç” gibi görünüyordu | Lens ve Shopping istemcisi `success` değerini denetleyip gerçek hata mesajını gösteriyor |
+| OCR satırı elle seçilirken seçilmeyen marka/model ilk taramadan taşınıyordu | Kullanıcının reddettiği yanlış kimlik Radar sorgusuna girebiliyordu | OCR kaynaklı marka, model, GTIN ve stil kodu yalnız seçilen metinde kanıtlanıyorsa taşınıyor; kamera tarafından çözülen barkod/QR kanıtı korunuyor |
+
+Lens yükleme endpoint'ine ayrıca boş dosya ve görüntü olmayan MIME türü denetimi eklendi. Google Lens sonucu, resmî ve kararlı bir tüketici API'si değildir; kamuya açık sonuç sayfasının değişebilen HTML'inden en iyi çabayla aday üretir. CAPTCHA veya erişim koruması görülürse otomatik aşma denenmez, açık hata döndürülür. Bu yol çekirdek Radar motorlarının yerine değil, kullanıcı tarafından başlatılan isteğe bağlı aday üretme katmanı olarak değerlendirilmelidir.
+
+### 31.2 Mobil uygulama kararı ve APK kapsamı
+
+Depoda iki Android yapı vardır:
+
+1. `frontend/android`: Capacitor tarafından üretilen web kabuğu;
+2. `mobile/android`: sunucu adresi ayarı, WebView, Google Code Scanner, CameraX, cihazda ML Kit OCR, dondurulmuş kare üzerinde metin kutusu seçimi ve Radar'a aktarım içeren özellikli test uygulaması.
+
+Bir haftalık deneme için ikinci yapı esas alınmıştır. Bu seçim, kamera/OCR özelliklerini kaybetmeden mevcut React Radar ekranlarını kullanır. Üretilen APK `mobile/dist/ShoeHunter-Radar-0.1.0-test.apk` dosyasıdır; varsayılan test sunucusu `http://192.168.1.131:3000` olarak derlenmiştir ve uygulama içindeki Sunucu Ayarları ekranından değiştirilebilir.
+
+APK kanıtı:
+
+| Alan | Değer |
+|---|---|
+| Derleme | `assembleDebug` başarılı |
+| Dosya boyutu | 48.398.521 bayt |
+| SHA-256 | `48361604503F0731C1E4381FBB6BFA8F27C020F3732EEE1B97A0B475511C70BF` |
+| Barkod | EAN-13, EAN-8, UPC-A/E, Code 128, QR, Data Matrix |
+| OCR | CameraX + APK içinde ML Kit Latin modeli; metin okuma cihazda çalışır |
+| Sunucu ihtiyacı | Ürün arama, fiyat ve Radar kaydı için telefon/tablet ile bilgisayar aynı ağa bağlı olmalıdır |
+
+### 31.3 Doğrulama kanıtı
+
+| Katman | Sonuç |
+|---|---|
+| Tüm backend testleri | 239/239 geçti; 1 isteğe bağlı test atlandı |
+| Tüm frontend testleri | 24/24 geçti |
+| React production build | Başarılı |
+| Native OCR seçim/geometri JUnit testleri | 7/7 geçti |
+| Android debug APK derlemesi | Başarılı |
+
+Android Gradle'ın `testDebugUnitTest` worker süreci bu Windows ortamında `GradleWorkerMain` sınıf yolunu yükleyemedi. Aynı test kaynakları aynı JDK, JUnit 4.13.2 ve Hamcrest ile doğrudan derlenip çalıştırılmış ve 7/7 geçmiştir. Uygulamanın `assembleDebug` derlemesi de başarıyla tamamlanmıştır; dolayısıyla bu kayıt kod testi başarısızlığı değil, Gradle test-worker ortam uyumsuzluğudur.
+
+### 31.4 Bugün tamamlanan ile kalan hedeflerin kesin ayrımı
+
+**Tamamlanan:** barkod ve OCR kimlik çıkarımı, seçilebilir OCR, ürün kodu/GTIN öncelikli Radar sorgusu, sıkı kimlik filtresi, Google Shopping metin araması için isteğe bağlı adaptör, Google Lens görsel sonucu için isteğe bağlı en-iyi-çaba adaptörü, native Android barkod/OCR köprüsü, çevrimdışı kuyruk, yerel bildirim beslemesi, GS1 çözümleme/üretme, güvenli görsel aday kataloğu, fiziksel fiyat kanıtı ve kurulabilir test APK'sı.
+
+**Dış veri/model gerektiren ve bu nedenle tamamlandı denmeyen:** lisansı ve SHA-256 değeri onaylı gerçek OpenCLIP checkpoint'inin kurulması, büyük katalog popülasyonu, etiketli saha setinde ölçülmüş görsel top-5 recall, pgvector/Qdrant ölçek geçişi, internet dışından anlık FCM teslimi ve tam 3B/ARCore nesne takibi.
+
+Mevcut kamera deneyimi canlı aday bilgisi bindirmesini içerir; exact SKU veya 3B konum takibi iddia etmez. Görsel katalog varsayılan olarak deterministik yerel parmak iziyle güvenli aday üretir. OpenCLIP hattı yalnız kullanıcı tarafından sağlanan, hash'i doğrulanan yerel checkpoint ile etkinleşir; otomatik model indirme yapılmaz.
+
+## 32. 21 Temmuz 2026 — bütün önerilerin uygulama turu
+
+Bu bölüm “rapordaki öneriler gerçekten koda uygulandı mı?” sorusunun kesin durum kaydıdır. Aşağıdaki maddeler bu son turda çalışan koda bağlanmış ve test edilmiştir.
+
+### 32.1 Görsel katalog ve vektör hazırlığı
+
+- MongoDB üzerinde kalıcı `visual_candidate_index` koleksiyonu ve indeksleri eklendi.
+- Görsel indeksleme yalnız yüklenen görüntü baytlarını kabul eder; sunucunun keyfî URL veya dosya yolu okumasına izin verilmez. Bu tasarım SSRF ve yerel dosya sızıntısı riskini kapatır.
+- Kayıtlar canonical ürün, varyant, kaynak, GTIN, ürün kodu ve lisans/kanıt alanlarıyla doğrulanır.
+- Arama yalnız aday üretir; görsel benzerlik exact SKU kanıtı sayılmaz.
+- Varsayılan sağlayıcı deterministik yerel görsel parmak izidir. OpenCLIP desteği hazırdır fakat yalnız `OPENCLIP_MODEL_NAME`, yerel `OPENCLIP_CHECKPOINT_PATH`, beklenen `OPENCLIP_WEIGHTS_SHA256` ve `OPENCLIP_LICENSE_ID` birlikte verilirse açılır. Ağdan otomatik ağırlık indirilmez.
+- Ürün ayrıntı ekranına fotoğrafla benzer aday arama, güven skoru, canonical ürüne geçiş ve doğrulanmış mevcut ürün görselini kataloğa ekleme akışı getirildi.
+
+### 32.2 GS1, barkod ve QR
+
+- GS1 Digital Link URI ayrıştırma, doğrulanmış GTIN-14 üretme ve GS1 insan-okunur element string ayrıştırma uçları eklendi.
+- Desteklenen temel uygulama tanımlayıcıları: GTIN `(01)`, lot `(10)`, üretim `(11)`, best-before `(15)`, sell-by `(16)`, son kullanma `(17)`, seri `(21)` ve tüketici varyantı `(22)`.
+- Native QR içeriği GS1 Digital Link ise Radar sorgusu GTIN öncelikli hazırlanır; lot, seri ve tarih kanıtları kaybolmaz.
+- Düz metin ürün kodu ve isim, QR, EAN/UPC ve OCR hâlâ aynı kimlik kanıt modelinde ayrı roller olarak tutulur.
+
+### 32.3 Fiziksel mağaza fiyat kanıtı
+
+- Ürün ayrıntı ekranına mağaza, şube, fiyat, kanıt türü, GTIN, ürün kodu ve fotoğraf içeren fiziksel fiyat formu eklendi.
+- Raf etiketi, fiş ve kullanıcı beyanı aynı fiyat türü gibi birleştirilmez.
+- Ham fotoğraf güvenli yükleme yolundan işlenir; kanıt hash'i, zaman, kaynak ve ürün kimliği birlikte saklanır.
+- Doğrulanmış fiyat için ikinci bağımsız kanıt/moderasyon akışı ve onay/red işlemi bulunur.
+- Fiziksel fiyat, çevrimiçi sepet/kargo/toplam maliyet hesabından ayrı gösterilir; böylece kanıt rolleri karışmaz.
+
+### 32.4 Aile profili, beden ve bildirim kuralları
+
+- Birden fazla aile üyesi, kişi başına birden fazla ayakkabı numarası ve kategoriye özel beden kümeleri mevcut profil sisteminde korunmuştur.
+- Takip kaydı profilin o andaki beden hedeflerinin snapshot'ını tutar; sonraki profil değişikliği geçmiş takibi sessizce değiştirmez.
+- Aktif kurallar: son numara/beden fırsatı, numaran yeniden stokta, indirimli fiyattan yeniden stokta, tek renk/tek numara geri geldi, fiyat düştü ve numaran mevcut, sepette fiyat devam ediyor, stok kritik, dönem dibi, yeni ilan ve yeni varyant.
+- Genel fiyat düşüşü eşiği yüzde 3 ve Radar periyodu 6 saat olarak desteklenir. Linkten, barkoddan, OCR'dan, görselden veya AI destekli girişten oluşan kayıt aynı Radar ve bildirim hattına girer.
+- Bildirim içeriğinde ürün, mağaza, uygun numara/beden, fiyat, zaman ve bağlantı alanları taşınır.
+
+### 32.5 Android çevrimdışı kullanım ve bildirim
+
+- Barkod/OCR sonucu ağ yokken cihazdaki kalıcı outbox'a yazılır; bağlantı geldiğinde Radar ekranına aktarılır.
+- Kuyruk topluca silinmez. Web tarafı olayı teslim aldığında yalnız ilgili `outbox_id` native katmana onaylanır ve sadece o kayıt silinir. Bu, kısmi aktarımda veri kaybını önler.
+- Cihaz, oturumdan türetilmiş geri alınabilir ve sunucuda hash'li saklanan cihaz token'ı ile bildirim beslemesine kaydolur.
+- WorkManager ağ bağlantısı olduğunda arka planda `/api/mobile/alerts` beslemesini denetler; yeni olayları Android yerel bildirimi olarak ürün/mağaza/beden/fiyat bilgisiyle gösterir.
+- Bu yöntem kendi sunucusu üzerinden bir haftalık test için dış ücretli push API'si gerektirmez. Uygulama tamamen kapalıyken internet üzerinden gerçek zamanlı FCM push ayrıca kurulmamıştır; mevcut çözüm periyodik ve ağ-koşullu senkronizasyondur.
+
+### 32.6 Kamera bilgi bindirmesi
+
+- CameraX OCR görüntüsünün üzerinde canlı marka, ürün kodu, GTIN ve görünür fiyat adayını gösteren bilgi bindirmesi eklendi.
+- Bindirme “aday” olarak etiketlenir; kullanıcı seçimi ve kimlik kanıtı olmadan exact ürün iddiası üretmez.
+- Bu, saha kullanımına yararlı AR-benzeri kamera katmanıdır. ARCore ile 3B nesne sabitleme veya mağaza içi mekânsal yönlendirme yapılmış sayılmaz.
+
+### 32.7 Son doğrulama ve teslim
+
+| Kontrol | Sonuç |
+|---|---|
+| Backend test paketi | 239 geçti, 1 isteğe bağlı test atlandı |
+| Frontend test paketi | 24 geçti |
+| React üretim derlemesi | Başarılı |
+| Native saf JUnit | 7 geçti |
+| Android `assembleDebug` | Başarılı |
+| Güncel APK | `mobile/dist/ShoeHunter-Radar-0.1.0-test.apk` |
+| APK boyutu | 48.398.521 bayt |
+| APK SHA-256 | `48361604503F0731C1E4381FBB6BFA8F27C020F3732EEE1B97A0B475511C70BF` |
+
+### 32.8 Kesin kalan hedefler
+
+Kod altyapısı tamamlanmış olsa da aşağıdaki sonuçlar dosya yazarak dürüstçe üretilemez; dış varlık veya saha ölçümü gerektirir:
+
+1. Lisansı onaylanmış OpenCLIP checkpoint'i sağlanmalı, hash sabitlenmeli ve gerçek katalog görselleri indekslenmelidir.
+2. Etiketli gerçek kullanıcı fotoğraflarıyla top-5 recall, varyant karışıklığı ve yanlış exact eşleşme oranı ölçülmelidir.
+3. Katalog hacmi Mongo tabanlı tarama sınırını aşarsa pgvector veya Qdrant'a aynı metadata/kanıt sözleşmesiyle geçilmelidir.
+4. Telefon farklı ağdayken anlık bildirim istenirse sunucu HTTPS üzerinden erişilebilir yapılmalı ve FCM/APNs yaşam döngüsü eklenmelidir.
+5. 3B ARCore ancak kamera aday doğruluğu, pil tüketimi ve gizlilik saha hedefleri geçildikten sonra geliştirilmelidir.
+
+Bu sınırlar özelliklerin unutulması değildir. Yanlış doğruluk veya tamamlanmışlık iddiası üretmemek için ölçülebilir geçiş kapılarıdır.
+
+## 33. 22 Temmuz 2026 — rapor sırasıyla devam uygulaması
+
+### 33.1 Doğrulanmış gerçek embedding modeli
+
+Python 3.14 çalışma ortamında güncel OpenCLIP/PyTorch dağıtımının ağır ve uyumsuz bağımlılık riski nedeniyle aynı CLIP ViT-B/32 görsel kulesinin Qdrant tarafından yayımlanan ONNX portu seçildi. Model kartı kullanım amacını görüntü benzerliği olarak tanımlar ve MIT lisansı bildirir. Model hiçbir istek sırasında indirilmez; yalnız yerel dosyadan yüklenir.
+
+| Alan | Doğrulanan değer |
+|---|---|
+| Model | `Qdrant/clip-ViT-B-32-vision` |
+| Çalıştırıcı | ONNX Runtime CPU |
+| Boyut | 351.686.194 bayt |
+| Embedding | 512 boyut |
+| Lisans kaydı | MIT |
+| SHA-256 | `c68d3d9a200ddd2a8c8a5510b576d4c94d1ae383bf8b36dd8c084f94e1fb4d63` |
+| Kaynak | [Qdrant model kartı](https://huggingface.co/Qdrant/clip-ViT-B-32-vision) |
+
+Uygulama başlangıcında yerel dosyanın SHA-256 değeri doğrulanır; girişin `pixel_values`, çıkışın `image_embeds[512]` olduğu kontrol edilir. Dosya veya sözleşme farklıysa embedding özelliği kapalı kalır. Eski, üçüncü taraf URL'den otomatik ONNX indiren kod yolu kaldırılmıştır. Yeni kurulumlarda `scripts/setup-visual-model.ps1` sabitlenmiş model revizyonunu indirir, `.part` dosyasını hash ile doğrular ve yalnız doğrulama geçerse etkin dosya adına taşır.
+
+### 33.2 Gerçek katalog popülasyonu
+
+Veritabanındaki 245 görselli listing için mağaza bazında açık CDN izin listesi uygulandı. HTTPS, standart port, kullanıcı/parola içermeyen URL, genel IP DNS çözümü, her yönlendirmede yeniden alan adı doğrulama, en fazla 12 MB yanıt ve JPEG/PNG/WebP tür kontrolü zorunlu tutuldu.
+
+Sonuç:
+
+- 245 aday kaydın 243'ü başarıyla embedding kataloğuna alındı;
+- 243 kaydın tamamında doğrulanmış model descriptor'ı ve embedding bulunuyor;
+- 17 mağaza kaynağı ve `shoes`, `tops`, `bottoms`, `outerwear`, `products` kategorileri oluştu;
+- iki eski Trendyol görseli üç kontrollü denemede de CDN tarafından HTTP 503 döndürdü;
+- başarısız iki görsel ürünün piyasada olmadığı şeklinde yorumlanmadı;
+- indeksleme idempotenttir: tekrar koşuda var olan kayıtlar indirilip yeniden hesaplanmaz.
+
+Katalog komutu: `scripts/index-visual-catalog.py`. Komut yalnız veritabanındaki listing görsellerini ve mağaza-CDN eşleşmesini kullanır; rastgele URL almaz.
+
+### 33.3 Etiketli saha benchmark'ı ve bulunan varyant sorunu
+
+Kullanıcının gönderdiği dört gerçek etiket fotoğrafı, katalogda karşılığı bulunan `JH6206`, `JF2443`, `KC1948` ve `JF2847` kodlarıyla etiketlendi. Aynı 243 kayıt üzerinde iki yöntem karşılaştırıldı:
+
+| Yöntem | Top-1 | Top-5 | Top-5 recall | MRR |
+|---|---:|---:|---:|---:|
+| Yalnız görsel embedding | 0/4 | 2/4 | %50 | 0,1217 |
+| Görsel + OCR/ürün kodu + marka kanıtı | 4/4 | 4/4 | %100 | 1,0000 |
+
+Yalnız görsel yönteminde `JH6206` adayı 50. sırada kaldı; ilk sıraları görsel olarak benzer fakat farklı kodlu Adizero EVO SL varyantları aldı. `KC1948` 15. sırada kaldı. Bu doğrudan varyant karışıklığı kanıtıdır ve “görsel benzerlik exact SKU değildir” kuralını doğrular.
+
+Bunun üzerine aday sıralamasına isteğe bağlı `model_code_hint` ve `brand_hint` kanıt füzyonu eklendi. İpucu native OCR, barkod/QR veya kullanıcının doğruladığı ürün kodundan gelir. Kod eşleşmesi adayı yükseltir fakat sonuç alanı hâlâ `candidate_only=true`, `exact_sku_decision=false` kalır. Ürün ayrıntı ekranı mevcut ürün kodu ve markayı otomatik olarak bu aramaya taşır; kategori bilinmiyorsa yanlış `other` filtresi uygulamak yerine açık çapraz kategori araması yapar.
+
+Benchmark yeniden çalıştırılabilir: `scripts/benchmark_visual_catalog.py`. Dört örnek küçük bir doğrulama setidir; %100 hibrit sonuç genel saha başarısı iddiası değildir. Yeni marka, açı, ışık, ambalaj ve benzer varyantlardan daha büyük kör test seti eklenmelidir.
+
+### 33.4 Vektör veritabanı geçiş kararı
+
+Mevcut hacim 243 kayıttır; raporda tanımlanan 100.000 kayıt geçiş eşiğinin çok altındadır. Bu nedenle bu aşamada pgvector/Qdrant servis bağımlılığı eklemek gereksiz operasyon yükü oluşturur. İstatistik endpoint'i artık kullanılan depolamayı, 100.000 kayıt eşiğini, kalan kapasiteyi ve geçiş önerisi durumunu açıkça döndürür. Eşik aşılırsa aynı metadata/model-descriptor sözleşmesi korunarak ayrı vektör veritabanına geçilecektir.
+
+### 33.5 Sıradaki koşullu hedefler
+
+Rapor sırasındaki sonraki iki hedef koşulludur:
+
+1. Telefon sunucuyla farklı ağda ve anlık bildirim gerektiriyorsa Firebase projesi, Android `google-services.json`, FCM API etkinliği, HTTPS sunucu adresi ve sunucu ADC/service-account yetkisi gerekir. Mevcut WorkManager + cihaz token'lı kendi-sunucu bildirimi aynı ağ/test kullanımı için çalışmaya devam eder. FCM kimlik bilgileri olmadan sahte bir “push tamamlandı” kaydı oluşturulmayacaktır.
+2. Tam 3B ARCore, daha geniş kör saha setinde kamera kimlik doğruluğu, varyant karışıklığı, pil ve gizlilik hedefleri geçildikten sonra başlatılacaktır. Mevcut canlı kamera bindirmesi 3B AR olarak adlandırılmaz.
+
+Dolayısıyla rapor sırasındaki ilk dört maddeden model kurulumu, katalog popülasyonu ve ölçüm tamamlandı; vektör veritabanı geçişinin koşulu oluşmadığı ölçümle kanıtlandı. Son iki madde dış Firebase projesi/kimlik bilgisi ve daha geniş saha ölçümü beklemektedir.
+
+### 33.6 Bu turun son doğrulaması
+
+| Kontrol | Sonuç |
+|---|---|
+| Backend test paketi | 241 geçti, 1 isteğe bağlı test atlandı |
+| Frontend test paketi | 24/24 geçti |
+| React üretim derlemesi | Başarılı (`main.0dcda0f1.js`) |
+| FastAPI yükleme kontrolü | 88 rota başarıyla yüklendi |
+| Doğrulanmış ONNX model smoke testi | 512 boyutlu sonlu ve normalize embedding üretildi |
+| Katalog | 243/245 görsel indeksli; iki CDN 503 kaydı açıkça raporlu |
+| Benchmark | Görsel %50 top-5; OCR/kod füzyonu %100 top-5, küçük `n=4` set uyarısıyla |
+| Exact SKU güvenlik kuralı | Tüm görsel/hibrit sonuçlarda `exact_sku_decision=false` |
+
+## 34. 22 Temmuz 2026 — ShopHunter-Radar FCM HTTP v1 uygulaması
+
+### 34.1 Firebase kimliği ve güvenli anahtar kullanımı
+
+Firebase projesi ve Android test uygulaması aşağıdaki bilgilerle doğrulandı:
+
+| Alan | Değer |
+|---|---|
+| Firebase görünen adı | `ShopHunter-Radar` |
+| Firebase Project ID | `shophunter-radar` |
+| Firebase Project Number | `526501879181` |
+| Android debug package | `com.shoehunter.radar.debug` |
+| Android yapılandırması | `mobile/android/app/google-services.json` |
+| Sunucu yetkilendirmesi | ADC + ayrı servis hesabı JSON dosyası |
+| Gönderim protokolü | FCM HTTP v1 |
+
+`google-services.json` doğru debug package ile eşleşmektedir ve Git dışında tutulması için `.gitignore` kapsamına alınmıştır. Sunucu servis hesabı dosyası proje klasörüne kopyalanmamış, içeriği rapora/loglara yazılmamış ve `scripts/start-lan.ps1` tarafından yalnız çalışma zamanında `GOOGLE_APPLICATION_CREDENTIALS` üzerinden ADC'ye tanıtılmıştır. Legacy Cloud Messaging API kullanılmamıştır; kapalı kalması beklenen ve doğru durumdur. Gerekli en dar IAM rolü `roles/firebasecloudmessaging.admin` rolüdür.
+
+### 34.2 Android anlık bildirim hattı
+
+- Google Services Gradle eklentisi `4.5.0`, Firebase BoM `34.16.0` ve sürümsüz `firebase-messaging` bağımlılığı bağlandı.
+- Güncel Firebase Installation ID (FID) kaydı manifest bayrağıyla etkinleştirilir; eski registration-token akışı kullanılmaz.
+- FCM kaydı oluştuğunda veya FID değiştiğinde `FirebaseMessagingService.onRegistered` güncel FID'yi sunucuya taşır.
+- FCM mesajı ürün, mağaza, numara/beden, fiyat, alarm sınıfı ve HTTPS ürün bağlantısını veri alanlarıyla taşır.
+- Bildirime dokunulduğunda doğrulanmış HTTPS ürün bağlantısı açılır.
+- FCM ve WorkManager aynı alarmı getirirse `alert_id` tabanlı, son 100 kayıtla sınırlı cihaz-içi tekrar engelleme uygulanır.
+- Mevcut 15 dakikalık WorkManager alarm beslemesi kaldırılmamıştır. FCM/Google Play servisleri veya internet anlık teslimi bozarsa güvenli yedek olarak çalışmaya devam eder.
+
+### 34.3 Sunucu FCM gönderimi
+
+- Python Firebase Admin SDK `7.5.0` kuruldu ve bağımlılıklara sabitlendi.
+- `shophunter-radar` projesi servis hesabı ile ADC başlatma smoke testi geçti.
+- Mobil cihaz ve FCM FID kaydı için ayrı uçlar oluşturuldu. FID güncelleme ucu tarayıcı çerezine güvenmez; geri alınabilir cihaz bearer token'ını doğrular.
+- Cihaz auth token'ı yalnız SHA-256 hash olarak saklanır. FID hash'i benzersiz indeks için ayrıca tutulur; gönderim için gereken FID veritabanında erişim kontrollü kayıt olarak kalır ve hiçbir yanıta/loga eklenmez.
+- Aynı FID başka cihaz kaydına taşınırsa eski bağlantı temizlenir. Firebase `UnregisteredError` veya sender uyuşmazlığı döndürürse geçersiz FID otomatik kaldırılır.
+- Geliştiriciye özel parser/listing hata alarmları müşteriye push edilmez. Diğer aktif radar sınıfları aynı FCM hattından geçer.
+- Telegram sonucu ile FCM sonucu ayrı alanlarda saklanır; kanallardan biri başarılıysa alarm genel gönderim durumu başarılı kabul edilir.
+
+### 34.4 Doğrulama ve APK teslimi
+
+| Kontrol | Sonuç |
+|---|---|
+| Firebase Admin SDK | `7.5.0` kurulu |
+| ADC başlatma | Başarılı, Project ID `shophunter-radar` |
+| HTTP v1 IAM yetki testi | Yetkili istek FCM'e ulaştı; rastgele FID için beklenen `UnregisteredError`, `PermissionDenied=false` |
+| Google Services Gradle adımı | `processDebugGoogleServices` başarılı |
+| Android `assembleDebug` | Başarılı |
+| Backend test paketi | 244 geçti, 1 isteğe bağlı test atlandı |
+| Mobil FCM FID güvenlik testi | Kayıt, bearer doğrulama, FID yenileme ve hash kontrolü geçti |
+| APK package | `com.shoehunter.radar.debug` |
+| FCM service/intent/channel | Birleştirilmiş manifestte doğrulandı |
+| Android sürümü | `versionCode=2`, `versionName=0.1.1-test` |
+| APK | `mobile/dist/ShopHunter-Radar-0.1.1-test.apk` |
+| APK boyutu | 49.473.470 bayt |
+| APK SHA-256 | `B52F4A09CD872B17F72838832516F9E94442300EC2094D6C47A630DC83815573` |
+
+### 34.5 Kalan tek saha doğrulaması
+
+Canlı uçtan uca teslim henüz tamamlanmış sayılmaz; yeni APK telefona/tablete kurulup uygulamada oturum açılmadan gerçek cihaz FID'si oluşmaz ve sunucuda gönderilecek hedef kurulum bulunmaz. APK kurulduktan sonra bildirim izni verilmeli, ShopHunter sunucusuna bir kez giriş yapılmalı ve cihaz kaydının oluşması beklenmelidir. Sonraki gerçek radar alarmı veya kontrollü test alarmı ile ekran kapalı/uygulama kapalı teslim süresi ölçülecektir. Bu saha adımı kod, Firebase projesi veya servis hesabı eksiği değil; gerçek hedef kurulum FID'sine bağlı son teslim doğrulamasıdır.
+
+## 35. 22 Temmuz 2026 — Android kamera açılışı ve gerçek cihaz kaydı
+
+### 35.1 Bulunan kamera sorunu ve düzeltme
+
+Radar ekranındaki `Etiketi / Barkodu Oku` alanı HTML tarafında `capture="environment"` ile arka kamerayı istiyordu. Android WebView dosya-seçici katmanı bu isteği kontrol etmediği için kullanıcıya doğrudan kamera yerine dosya/galeri seçimi gösteriliyordu. `WebChromeClient.onShowFileChooser` artık `FileChooserParams.isCaptureEnabled()` değerini denetler; arka kamera isteği ve kullanılabilir kamera uygulaması varsa `ACTION_IMAGE_CAPTURE` doğrudan açılır. Kamera bulunamazsa dosya seçici güvenli yedek olarak kalır. Çekilen görüntünün mevcut OCR, barkod, ürün kodu ve Radar'a kontrollü aktarma hattı değiştirilmemiştir.
+
+### 35.2 Gerçek cihaz ve yeni APK durumu
+
+Telefonun `POST /api/mobile/device/register` isteği canlı sunucu kaydında HTTP 200 olarak, ardından FCM FID güncellemesi `POST /api/mobile/device/push-registration` HTTP 200 olarak görüldü. Bu, oturum açan gerçek cihazın sunucuya ve FCM hedef kaydına ulaştığını kanıtlar; ekran kapalı anında bildirim teslimi ayrı saha testi olarak kalır.
+
+| Kontrol | Sonuç |
+|---|---|
+| Android `assembleDebug` | Başarılı |
+| Frontend regresyon testleri | 24/24 geçti |
+| Gerçek cihaz kaydı | HTTP 200 |
+| Gerçek cihaz FCM FID kaydı | HTTP 200 |
+| Android sürümü | `versionCode=2`, `versionName=0.1.1-test` |
+| APK | `mobile/dist/ShopHunter-Radar-0.1.1-test.apk` |
+| APK boyutu | 49.473.470 bayt |
+| APK SHA-256 | `B52F4A09CD872B17F72838832516F9E94442300EC2094D6C47A630DC83815573` |
+
+Kamera davranışı yerel Android kodunda düzeltildiği için telefondaki önceki APK'nın yeni APK ile güncellenmesi gerekir. Kurulumdan sonraki ilk saha kontrolünde Radar ekranındaki `Etiketi / Barkodu Oku` düğmesine dokunulduğunda arka kameranın dosya seçici gösterilmeden açılması beklenir.
+
+## 36. 22 Temmuz 2026 — WebView kamera çökmesi düzeltmesi
+
+0.1.1 saha denemesinde `Etiketi / Barkodu Oku` düğmesine basıldığında `org.chromium.base.JniAndroid$UncaughtExceptionException` ile uygulamanın kapandığı bildirildi. Paylaşılan kesit Java `Caused by` satırını içermediğinden tek OEM istisna sınıfı kesinleştirilemedi; ancak hata, doğrudan kamera değişikliğinde Android kamera izni kontrol edilmeden `ACTION_IMAGE_CAPTURE` başlatılması ve bu yoldaki yalnız `ActivityNotFoundException` türünün yakalanmasıyla aynı noktada oluştu. Bir Android `SecurityException`, MediaStore veya OEM kamera `RuntimeException` hatası WebView geri çağrısından JNI katmanına kaçabiliyordu.
+
+0.1.2-test sürümünde:
+
+- doğrudan kamera açılmadan önce Android `CAMERA` izni kontrol edilir;
+- izin yoksa kullanıcıdan sistem izin ekranıyla istenir;
+- izin verilirse kamera açılır;
+- izin reddedilirse uygulama kapanmaz ve resim galerisi açılır;
+- MediaStore, kamera uygulaması, dosya seçici ve eski WebView callback hataları `RuntimeException` sınırında yakalanır;
+- başarısız/geçersiz kamera URI ve WebView dosya callback durumları temizlenir;
+- eski APK'nın üstüne güvenilir güncelleme kurulabilmesi için sürüm kodu 3'e yükseltildi.
+
+| Kontrol | Sonuç |
+|---|---|
+| Android `assembleDebug` | Başarılı |
+| Paket | `com.shoehunter.radar.debug` |
+| Sürüm | `versionCode=3`, `versionName=0.1.2-test` |
+| APK | `mobile/dist/ShopHunter-Radar-0.1.2-test.apk` |
+| APK boyutu | 49.474.390 bayt |
+| APK SHA-256 | `6B4330FB44B252C160BE8BB3648B7EB320146420D5D6B37AAFB57EDA495C12C9` |
+
+Kaynak derlemesi ve paket metadata kontrolü geçti. Gerçek cihazın USB/ADB bağlantısı bulunmadığı için OEM kamera davranışı bilgisayardan otomatik doğrulanamadı; son kabul adımı 0.1.2 APK telefona kurulduktan sonra kamera izni verilerek yapılacaktır.
+
+## 37. 22 Temmuz 2026 — gerçek cihaz FCM bildirim testi
+
+Kamera saha kontrolünden sonraki plan adımı olan gerçek cihaz Firebase testi uygulandı. `scripts/send-fcm-device-test.py` yalnız etkin ve FCM kurulum kimliği bulunan cihazları hedefler; cihaz kimliğini, FID'yi veya cihaz yetkilendirme belirtecini ekrana/loga yazmaz.
+
+| Kontrol | Sonuç |
+|---|---|
+| Etkin ve FCM kayıtlı cihaz | 1 |
+| FCM tarafından kabul edilen gönderim | 1 |
+| Gönderim hatası | 0 |
+| Sunucu sonucu | `sent=true` |
+| Test zamanı | `2026-07-22 09:32:47 +03:00` |
+| Test alarm kimliği | `fcm-device-test-439ac329-7df4-4dc5-8273-fb9e1a40c39d` |
+
+Bu sonuç sunucu → Firebase HTTP v1 → kayıtlı cihaz hedefi hattının FCM tarafından kabul edildiğini kanıtlar. Kullanıcı, `ShopHunter Radar bildirim testi` başlıklı bildirimin telefonun bildirim paneline ulaştığını teyit etti. Böylece sunucu → FCM → Android servis → bildirim paneli zincirinin gerçek cihaz uçtan uca saha kabulü tamamlandı.
+
+| Son saha kabulü | Durum |
+|---|---|
+| Telefon bildirim panelinde görünme | **Teyit edildi** |
+| Uçtan uca FCM hattı | **Tamamlandı** |
+
+Bu teyitten sonraki plan adımı, telefon farklı ağdayken uygulamanın kişisel sunucuya erişebilmesi için Tailscale özel ağ kurulumudur.
+
+## 38. 22 Temmuz 2026 — Tailscale özel HTTPS hazırlığı ve 0.1.3 APK
+
+### 38.1 Hedef ve güvenlik sınırı
+
+Amaç, ShopHunter-Radar sunucusunu genel internete açmadan telefondan ve tabletten farklı mobil/Wi-Fi ağları üzerinden erişilebilir kılmaktır. Bunun için Tailscale Serve hedeflenmiştir. Serve yalnız aynı Tailscale özel ağına (`tailnet`) giriş yapmış cihazlara HTTPS erişimi sağlar. Genel internete açık Tailscale Funnel özellikle etkinleştirilmemiştir.
+
+Resmî Windows MSI paketi `1.98.9` indirildi. İndirilen dosyanın SHA-256 değeri yayımlanan sağlama değeriyle karşılaştırıldı ve Windows Authenticode imzası `Tailscale Inc.` adına `Valid` olarak doğrulandı.
+
+| Paket kontrolü | Sonuç |
+|---|---|
+| Dosya | `tailscale-setup-1.98.9-amd64.msi` |
+| SHA-256 | `07BCB57D3BD34A0299D98133F1A0091DB2CE66831AA7C100F456E2269A41E665` |
+| Authenticode | Geçerli — `Tailscale Inc.` |
+| Funnel/genel yayın | Etkinleştirilmedi |
+
+### 38.2 Tek HTTPS kök adresi için uygulama değişiklikleri
+
+- FastAPI artık `frontend/build` üretim çıktısını `/` ve istemci rotalarından sunar; `/api/*` istekleri SPA geri dönüşüne düşmez.
+- HTTP yerel ağ kullanımında mevcut `http://sunucu:8000` davranışı korunur.
+- HTTPS/Tailscale Serve kullanımında arayüz API kökü olarak aynı HTTPS origin'i kullanır. Böylece ayrı bir açık API portu veya karma içerik izni gerekmez.
+- Android cihaz/FCM kaydı, HTTPS sayfada kayıtlı özel bir adres yoksa `location.origin` üzerinden yapılır.
+- Ters vekilin `X-Forwarded-Proto: https` başlığıyla gelen kurulum ve giriş yanıtlarında oturum ve CSRF çerezleri `Secure` olarak üretilir.
+- `scripts/configure-tailscale-serve.ps1`, yerel sağlık kontrolünden sonra yalnız `http://127.0.0.1:8000` hedefini kalıcı Tailscale Serve HTTPS servisine bağlamak üzere eklendi.
+
+### 38.3 Çalışan sunucu doğrulaması
+
+Eski 8000 portu süreci kapatılıp güncel FastAPI süreci temiz biçimde başlatıldı. Aynı portta hem üretim arayüzü hem API doğrulandı:
+
+| İstek | Sonuç |
+|---|---|
+| `GET http://127.0.0.1:8000/` | HTTP 200, HTML |
+| `GET http://127.0.0.1:8000/radar` | HTTP 200, HTML |
+| `GET http://127.0.0.1:8000/api/health` | HTTP 200, JSON |
+
+### 38.4 Regresyon testleri ve yeni APK
+
+| Kontrol | Sonuç |
+|---|---|
+| Backend test paketi | **245 geçti, 1 isteğe bağlı test atlandı** |
+| Frontend test paketi | **25/25 geçti** |
+| React üretim derlemesi | Başarılı (`main.7e5b7487.js`) |
+| Tailscale PowerShell betiği | Sözdizimi doğrulaması geçti |
+| Android derleme | Başarılı |
+| Paket | `com.shoehunter.radar.debug` |
+| Sürüm | `versionCode=4`, `versionName=0.1.3-test` |
+| APK | `mobile/dist/ShopHunter-Radar-0.1.3-test.apk` |
+| APK boyutu | 49.474.394 bayt (47,18 MiB) |
+| APK SHA-256 | `D5004122A5CEB9FD1A4D139678E00D79FD934B930E18FDB7D50B28806B96EEAB` |
+
+### 38.5 Kalan dış sistem adımı
+
+MSI sessiz kurulum denemesi Windows Installer günlüğünde `This package requires elevated privileges to install` ve hata `1603` ile durdu. Bu bir paket, kod veya servis bağımlılığı hatası değildir; mevcut otomasyon oturumunun Windows UAC yönetici belirtecini MSI'a aktaramamasıdır. Kurulumun tamamlanması için bilgisayarda kullanıcı tarafından yalnız bir kez aşağıdaki işlem gerekir:
+
+1. `%TEMP%\tailscale-setup-1.98.9-amd64.msi` dosyasını açın.
+2. `Install` ve ardından Windows UAC ekranında `Evet` seçin.
+3. Tailscale'de kullanıcı hesabıyla giriş yapın.
+4. Telefona/tablete resmî Tailscale uygulamasını kurup aynı hesaba/tailnet'e giriş yapın ve Android VPN iznini verin.
+5. Ardından `scripts/configure-tailscale-serve.ps1` çalıştırılarak özel HTTPS adresi üretilecek ve telefon Wi-Fi kapalıyken mobil veri üzerinden son saha testi yapılacaktır.
+
+Bu son kullanıcı/UAC adımı tamamlanmadan Tailscale'in kurulduğu, özel HTTPS adresinin üretildiği veya hücresel ağ testinin geçtiği iddia edilmemiştir. Sunucu, uygulama kodu, doğrulama betiği ve 0.1.3 APK bu son bağlantı kabulü için hazırdır.
+
+### 38.6 Kurulum ve tailnet giriş kabulü
+
+Kullanıcı Windows MSI/UAC kurulumunu tamamladı. Kurulum sonrası aşağıdaki durumlar gerçek makinede doğrulandı:
+
+| Kontrol | Sonuç |
+|---|---|
+| Tailscale sürümü | `1.98.9` |
+| Windows `Tailscale` servisi | `Running`, başlangıç türü `Automatic` |
+| Tailscale özel ağ bağlantısı | Başarılı |
+| Tailscale IPv4 | `100.93.18.127` |
+| MagicDNS son eki | `tail135515.ts.net` |
+| Beklenen bilgisayar adı | `pc1.tail135515.ts.net` |
+| Yerel ShopHunter sunucusu | `http://127.0.0.1:8000`, sağlık kontrolü başarılı |
+| Tailscale HTTPS Serve | **Başarılı** |
+| Özel uygulama adresi | `https://pc1.tail135515.ts.net` |
+| HTTPS `/` | HTTP 200, HTML |
+| HTTPS `/radar` | HTTP 200, HTML |
+| HTTPS `/api/health` | HTTP 200, `{"status":"ok","database":true,"version":"0.6.0"}` |
+| TLS sertifika doğrulaması | Başarılı; doğrulama kapatılmadan HTTP 200 alındı |
+
+Windows kurulumu, tailnet hesabına giriş ve Tailscale Serve özel HTTPS yayını tamamlanmıştır. `scripts/configure-tailscale-serve.ps1` betiği `http://127.0.0.1:8000` hedefini kalıcı arka plan Serve yapılandırmasına bağladı ve gizli anahtar içermeyen `mobile/tailscale-connection.json` sonuç kaydını üretti; bu makineye özel dosya Git dışında tutulur. Bilgisayar tarafındaki son kabul tamamlandı. Kalan tek dış cihaz kabulü, Android Tailscale uygulamasında aynı tailnet'e giriş yaptıktan sonra telefon Wi-Fi kapalı ve mobil veri açıkken `https://pc1.tail135515.ts.net` adresine erişildiğinin doğrulanmasıdır.
+
+## 39. 22 Temmuz 2026 — Tailscale üzerinden veri yüklenememesi düzeltmesi ve 0.1.4 APK
+
+### 39.1 Bildirilen belirti ve canlı kanıt
+
+Android uygulamada ilk şifreyle giriş başarılı olmuş ve menüler açılmış; buna karşılık Ürünler ve Ürün Radarı ekranları yüklenemedi uyarısı vermiştir. Canlı sunucu erişim kayıtlarında telefonun Tailscale IP adresi `100.103.16.93` üzerinden bağlandığı ve aşağıdaki isteklerin HTTP 200 aldığı doğrulanmıştır:
+
+| Canlı istek | Sonuç |
+|---|---|
+| `GET /urunler` ve statik uygulama paketi | HTTP 200 |
+| `POST /api/auth/login` | HTTP 200 |
+| `GET /api/auth/status` | HTTP 200 |
+| `GET /api/` | HTTP 200 |
+| `GET /api/products` | HTTP 200 |
+
+Bu kanıt veritabanının ve ürün verilerinin kaybolmadığını, telefon–sunucu bağlantısının ve kimlik doğrulamanın çalıştığını gösterir. Sorun, istemcinin bazı alt isteklerde daha önce kaydedilmiş yerel ağ HTTP adresini kullanabilmesi ve ekran yükleyicilerinin yardımcı bir istek hatasında tüm ekranı başarısız saymasıydı.
+
+### 39.2 Uygulanan düzeltmeler
+
+- HTTPS altında açılan arayüz, daha önce kaydedilmiş `http://192.168...` sunucu adresini artık kullanmaz; API kökü zorunlu olarak güvenli sayfanın kendi origin'ine döner. Bu, Android WebView karma içerik engelini ortadan kaldırır.
+- Android yerel FCM/cihaz kaydı da HTTPS oturumunda kayıtlı eski LAN adresi yerine `location.origin` kullanır.
+- Ürün Radarında ana `/watches` verisi zorunlu tutulurken `/stores` ve `/profile` yardımcı istekleri ayrı ele alınır. Yardımcı bir servisin geçici hatası artık bütün radar listesini kapatmaz.
+- Ürünler ekranında yanıt tipi doğrulaması, kontrollü hata mesajı ve her durumda tamamlanan yüklenme durumu eklendi.
+- HTTPS davranışını korumak için otomatik frontend testi eklendi.
+
+### 39.3 Doğrulama ve yeni Android paketi
+
+| Kontrol | Sonuç |
+|---|---|
+| Frontend test paketi | **26/26 geçti** |
+| React üretim derlemesi | Başarılı (`main.78b7782e.js`) |
+| Canlı Tailscale HTTPS ana sayfası | HTTP 200 ve yeni paket doğrulandı |
+| Canlı `/api/health` | HTTP 200, `status=ok` |
+| Android Gradle/Firebase kaynak işleme | Başarılı |
+| Android APK derleme | **Başarılı** |
+| Paket | `com.shoehunter.radar.debug` |
+| Varsayılan sunucu | `https://pc1.tail135515.ts.net` |
+| Başlangıç ekranı | `/urunler` |
+| Sürüm | `versionCode=5`, `versionName=0.1.4-test` |
+| APK | `mobile/dist/ShopHunter-Radar-0.1.4-test.apk` |
+| APK boyutu | 49.474.394 bayt (47,18 MiB) |
+| APK SHA-256 | `D477272B4F6176212D543783340C1465B0AD6FEB50F3329E2B8BEFFFC656D7A6` |
+
+### 39.4 Saha kabul adımı
+
+Mevcut `0.1.3-test` uygulamasının üzerine `0.1.4-test` APK kurulmalı, Tailscale bağlı tutulmalı ve uygulama tamamen kapatılıp yeniden açılmalıdır. Girişten sonra önce **Ürünler**, ardından **Ürün Radarı** açılarak gerçek cihaz kabulü tamamlanacaktır. Bu rapor kod, otomatik test, canlı HTTPS ve APK derleme doğrulamalarını kaydeder; son iki ekranın telefonda görüntülendiği henüz kullanıcı tarafından teyit edilmemiştir.
+
+## 40. 22 Temmuz 2026 — Arka plan Radar, 6 saatlik keşif ve gerçek FCM kabulü
+
+### 40.1 Android veri ekranı saha kabulü
+
+Kullanıcı `0.1.4-test` kurulumundan sonra uygulamanın, Ürünler ekranının ve Ürün Radarının çalıştığını teyit etti. Böylece 39.4'te bekleyen gerçek cihaz kabulü tamamlandı.
+
+### 40.2 `WinError 5` kök nedeni ve işçi mimarisi düzeltmesi
+
+Canlı kurulumda hem FastAPI içindeki gömülü işçi hem de ayrı `browser` worker aynı kalıcı browser kuyruğundan iş alabiliyordu. Playwright işi kısıtlı sunucu sürecine denk geldiğinde Windows alt süreç başlatma işlemi `WinError 5 / Access denied` ile durabiliyordu; aynı iş ayrı browser worker'a denk geldiğinde tarayıcı açılıyordu.
+
+`scripts/start-lan.ps1` kalıcı scheduler ile `default` ve `browser` kuyruklarına ayrı işçiler başlattığı için bu modda `EMBEDDED_SCHEDULER=false` ayarlanacak şekilde düzeltildi. Böylece browser kuyruğunun tek sahibi Playwright açabilen ayrı işçi oldu. Servisler bu yapıyla yeniden başlatıldı.
+
+| Kontrol | Sonuç |
+|---|---|
+| Bağımsız Playwright / Decathlon | Sayfa render edildi, 646.414 HTML baytı |
+| Adidas standart arama | HTTP 403; erişim koruması aşılmadı |
+| Adidas `JR5220` resmî kesin kod rotası | Aday URL bulundu |
+| Yerel `/api/health` | HTTP 200, veritabanı bağlı |
+| Tailscale HTTPS `/api/health` | HTTP 200 |
+| Güncel servis hata kayıtları | `WinError 5`, `Access denied`, traceback ve ERROR yok |
+| Hedefli backend regresyon testleri | **22/22 geçti** |
+| PowerShell başlatma betiği sözdizimi | Geçti |
+
+### 40.3 Gerçek üründe manuel Radar taraması
+
+Mevcut `nike Vomero 18` Radar kaydı değiştirilmeden normal `browser` kuyruğuna manuel keşif işi bırakıldı. İş `PC1-17800-browser` ayrı işçisi tarafından tek denemede tamamlandı.
+
+| Manuel tarama kanıtı | Sonuç |
+|---|---|
+| Job kimliği | `5b1f605f3a57749dbb5069cc37c4ce4e` |
+| Discovery run kimliği | `9a4281dc-9c0f-43ce-8def-4873048f1dc7` |
+| Mağaza kapsamı | 28/28 denendi |
+| Kullanılabilir mağaza sonucu | 24, kapsama `%85,7` |
+| Erişim koruması nedeniyle bloklanan | 4 |
+| Runtime hatası | 0 |
+| Otomatik eşleşme | 14 |
+| İnceleme adayı | 4 |
+| Yeni ilan | 1 |
+| İş denemesi | 1, tamamlandı |
+
+Yeni ilan Nike TR'de gerçek `nike Vomero 18` ilanıdır ve taranan fiyat `8.799 TL` olarak kaydedilmiştir.
+
+### 40.4 Zamanlanmış kontrol ve 6 saatlik Radar yolu
+
+Canlı ayarlarda scheduler etkindir; fiyat/stok kontrol aralığı 30 dakika, Radar keşif temel aralığı 6 saattir. Yeniden başlatılan gerçek scheduler `14:30 UTC` kovasında otomatik `batch_check` üretti. Ayrı browser worker 43 vadesi gelen ilanın tamamını başarıyla kontrol etti.
+
+| Otomatik fiyat/stok turu | Sonuç |
+|---|---|
+| Job kimliği | `b4b26239869acd3124b8c710c60885fd` |
+| Check run kimliği | `03f516af-f474-4476-8dcf-edd95a678f7a` |
+| Kontrol edilen / başarılı | **43/43** |
+| Hatalı / ertelenen / fiyatsız | `0 / 0 / 0` |
+| Henüz vadesi gelmediği için atlanan | 254 |
+| Değişmeyen | 38 |
+| Oluşan alarm | 0 |
+
+6 saatlik Radar kabulü için aynı `nike Vomero 18` kaydı kontrollü olarak vadesi gelmiş yapıldı ve scheduler'ın kullandığı `discover_due` iş tipi normal `browser` kuyruğunda çalıştırıldı. Kabul işinin sadece tek vadesi gelen kaydı tarayabilmesi için dahili `limit` değeri 1–20 aralığında sınırlanarak desteklendi ve iki otomatik test eklendi.
+
+| 6 saatlik yol kabulü | Sonuç |
+|---|---|
+| Job kimliği | `431811e7c074407597175dd99798f08d` |
+| Job tipi / kuyruk | `discover_due` / `browser` |
+| İşçi | `PC1-8680-browser` |
+| Vadesi gelen Radar işlendi | 1 |
+| Discovery run kimliği | `3a127976-079a-42df-afd0-520528788d43` |
+| Mağaza kapsamı | 28 |
+| Kullanılabilir mağaza sonucu | 24, kapsama `%85,7` |
+| Runtime hatası | 0 |
+| İş denemesi | 1, tamamlandı |
+
+Her Radar kaydının `discovery_frequency_hours=6` temel aralığı korunur. Bir mağaza geçici olarak bloklu/ertelenmişse sistem altı saatlik normal turu beklemeden daha erken güvenli tekrar tarihi belirleyebilir. Bu nedenle kabul kaydında sonraki çalışma, bloklu mağazalar için `16:24 UTC` tekrarına çekilmiştir; bu 6 saatlik temel taramanın kaldırıldığı anlamına gelmez.
+
+### 40.5 Gerçek Radar olayından FCM
+
+Manuel taramada eklenen gerçek Nike ilanı `new_listing` alarmı oluşturdu. Bildirim için yapay fiyat veya stok değişikliği üretilmedi.
+
+| FCM kabul kanıtı | Sonuç |
+|---|---|
+| Alarm kimliği | `4bcb81ef62be16d5250d12563def3170` |
+| Alarm türü | `new_listing` |
+| Başlık | `Yeni magazada urun bulundu` |
+| Ürün / mağaza / fiyat | `nike Vomero 18` / Nike TR / `8.799 TL` |
+| Etkin FCM cihazı | 1 |
+| FCM sonucu | `fcm_sent=true`, `fcm_sent_count=1`, hata yok |
+| Genel bildirim durumu | `sent` |
+
+Bu sonuç gerçek Radar keşfi → yeni ilan → alarm kaydı → FCM HTTP v1 kabulü zincirini doğrular. Bildirimin Android bildirim panelinde görülmesi kullanıcı tarafından ayrıca teyit edilebilir; sunucu ve Firebase gönderim kabulü tamamlanmıştır.

@@ -4,6 +4,7 @@ import {
   allOcrSelection,
   buildSelectedOcrQuery,
   nativeBarcodeSuggestion,
+  parseGs1DigitalLinkUrl,
   nativeOcrSuggestion,
   ocrOverlayStyle,
   recommendedOcrSelection,
@@ -174,6 +175,26 @@ test("turns a native Android barcode into exact Radar identity evidence", () => 
   expect(nativeBarcodeSuggestion({ value: "JR5220" }).source_identifiers).toEqual({ product_code: "JR5220" });
 });
 
+test("turns a GS1 Digital Link QR into GTIN-first Radar evidence", () => {
+  const url = "https://id.gs1.org/01/09506000134352/10/LOT7/21/SER42?17=271231";
+  expect(parseGs1DigitalLinkUrl(url)).toMatchObject({
+    gtin: "09506000134352",
+    batch_lot: "LOT7",
+    serial: "SER42",
+    expiry_yymmdd: "271231",
+  });
+  expect(nativeBarcodeSuggestion({ value: url })).toMatchObject({
+    raw_query: "09506000134352",
+    model: null,
+    source_identifiers: {
+      qr: url,
+      gtin: "09506000134352",
+      batch_lot: "LOT7",
+      serial: "SER42",
+    },
+  });
+});
+
 test("turns user-selected native OCR text into reviewed Radar evidence", () => {
   expect(nativeOcrSuggestion({
     selected_text: "Adidas TRAIL RUNNING JR5220",
@@ -202,5 +223,14 @@ test("reports partial store coverage instead of hiding deferred stores", () => {
       { status: "ok" },
       ...Array.from({ length: 25 }, () => ({ status: "deferred" })),
     ],
-  })).toEqual({ selected: 27, searched: 2, deferred: 25, failed: 0 });
+  })).toEqual({
+    selected: 27,
+    searched: 2,
+    deferred: 25,
+    failed: 0,
+    blocked: 0,
+    timedOut: 0,
+    parserFail: 0,
+    otherError: 0,
+  });
 });

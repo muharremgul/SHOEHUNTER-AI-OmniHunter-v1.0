@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="Typos">
-    <string name="app_name">ShoeHunter Radar</string>
+    <string name="app_name">ShopHunter Radar</string>
     <string name="refresh">Yenile</string>
     <string name="scan_barcode">Barkod veya QR kod tara</string>
     <string name="scan_text">Metni kamerayla tara</string>
@@ -38,8 +38,14 @@
     <string name="no_app_for_link">Bu bağlantıyı açabilecek uygulama bulunamadı.</string>
     <string name="choose_photo">Fotoğraf çek veya galeriden seç</string>
     <string name="no_file_picker">Dosya seçici bulunamadı.</string>
+    <string name="camera_permission_fallback">Kamera izni verilmedi; uygulama kapanmadan galeri açılıyor.</string>
+    <string name="camera_open_failed">Kamera açılamadı; uygulama kapanmadan galeri açılıyor.</string>
     <string name="unsupported_download">Bu indirme türü desteklenmiyor.</string>
     <string name="downloading">Dosya indiriliyor</string>
     <string name="download_started">İndirme başlatıldı.</string>
     <string name="download_failed">İndirme başlatılamadı.</string>
+    <string name="scan_queued">Tarama çevrimdışı kuyruğa kaydedildi; bağlantı gelince Radar’a aktarılacak.</string>
+    <string name="notification_channel_name">Radar fırsat bildirimleri</string>
+    <string name="notification_channel_description">Fiyat, stok ve takip edilen beden gelişmeleri</string>
+    <string name="camera_candidate_prefix">Canlı aday</string>
 </resources>
